@@ -28,6 +28,11 @@
                 <i class="fas fa-globe"></i> View Website
             </a>
         </li>
+          <li>
+            <a href="change-password.php" class="<?= $current_page === 'backup.php' ? 'active' : '' ?>">
+                <i class="fas fa-key"></i> Password update
+            </a>
+        </li>
         <li style="margin-top:30px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;">
             <a href="logout.php" style="color:rgba(255,255,255,0.45);">
                 <i class="fas fa-sign-out-alt"></i> Logout

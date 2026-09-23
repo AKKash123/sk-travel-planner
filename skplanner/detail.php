@@ -734,11 +734,12 @@ if (!$itin) {
             <div class="cta-banner" data-animate>
                 <div style="position: relative; z-index: 1;">
                     <h3>Ready to embark on this journey?</h3>
-                    <p>Download the complete itinerary PDF and start planning your <?= e($itin['destination']) ?> adventure today.</p>
+                    <p>Contact us soon, lets <?= e($itin['destination']) ?> adventure today.</p>
                 </div>
-                <a href="download-pdf.php?id=<?= (int)$itin['id'] ?>" class="btn btn-accent btn-lg" style="position:relative;z-index:1;">
+                                <!-- FIXED -->
+                <!-- <a href="download-pdf.php?id=<?= (int)$itin['id'] ?>" class="btn btn-accent">
                     <i class="fas fa-file-pdf"></i> Download Itinerary PDF
-                </a>
+                </a> -->
             </div>
 
         </div>
@@ -785,9 +786,9 @@ if (!$itin) {
 
                 <!-- Action Buttons -->
                 <div class="sidebar-actions">
-                    <a href="download-pdf.php?id=<?= (int)$itin['id'] ?>" class="btn btn-accent" style="width:100%;justify-content:center;">
+                    <!-- <a href="download-pdf.php?id=<?= (int)$itin['id'] ?>" class="btn btn-accent" style="width:100%;justify-content:center;">
                         <i class="fas fa-file-pdf"></i> Download PDF
-                    </a>
+                    </a> -->
                     <a href="index.php" class="btn btn-outline" style="width:100%;justify-content:center;">
                         <i class="fas fa-arrow-left"></i> All Itineraries
                     </a>

@@ -1,0 +1,49 @@
+# ============================================
+# SK Travel Planner — robots.txt
+# ============================================
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /uploads/
+Disallow: /logs/
+Disallow: /fpdf/
+Disallow: /config.php
+Disallow: /error-log.php
+Disallow: /change-password.php
+Disallow: /setup-admin.php
+Disallow: /install.php
+Disallow: /build-pdf.php
+Disallow: /pdf-test.php
+Disallow: /download-pdf.php
+Disallow: /password-generator.php
+Disallow: /error-404.php
+Disallow: /error-403.php
+Disallow: /error-500.php
+Disallow: /error-401.php
+Disallow: /error-handler.php
+
+# Sitemap
+Sitemap: http://localhost/sk-travel-planner/sitemap.xml.php
+
+# Crawl delay (be gentle)
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: SEOkicks-Robot
+Disallow: /
+
+User-agent: Screaming Frog SEO Spider
+Disallow: /

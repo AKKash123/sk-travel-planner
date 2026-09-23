@@ -477,56 +477,449 @@ img {
    HERO FLOATING SHAPES
    ============================================ */
 
+/* =========================================================
+   Hero decoration — travel theme
+   Replaces the old .hero-shapes / .hero-shape / @keyframes float
+   Works with your existing markup (3 × .hero-shape, inline size/position)
+   Shape 1 = flight-route ring with a plane dot
+   Shape 2 = compass ring with tick marks
+   Shape 3 = golden-hour glow
+========================================================= */
+
 .hero-shapes {
+    --ring: rgba(255, 255, 255, .24);
+    --ring-soft: rgba(255, 255, 255, .10);
+    --gold: #f5b841;
+
     position: absolute;
-
-    top: 0;
-    left: 0;
-
-    width: 100%;
-    height: 100%;
-
+    inset: 0;
+    z-index: 0;
     pointer-events: none;
     overflow: hidden;
 }
 
+/* Sunset glow (top right) + ocean glow (bottom left) */
+.hero-shapes::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(520px 520px at 82% 18%, rgba(245, 184, 65, .22), transparent 70%),
+        radial-gradient(640px 640px at 8% 88%, rgba(56, 189, 248, .18), transparent 70%);
+}
+
+/* Faint dotted "world map" texture that fades toward the edges */
+.hero-shapes::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, .16) 1px, transparent 1.4px);
+    background-size: 26px 26px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 55%, #000 20%, transparent 75%);
+            mask-image: radial-gradient(ellipse 70% 60% at 50% 55%, #000 20%, transparent 75%);
+}
+
+/* Keep hero text above the decoration */
+.hero-content { position: relative; z-index: 1; }
+
+/* ---------- Shape 1: flight route ---------- */
 .hero-shape {
     position: absolute;
-
-    border: 2px solid rgba(255,255,255,0.08);
-
     border-radius: 50%;
-
+    border: 1.5px dashed var(--ring);
     animation:
-        float 20s ease-in-out infinite;
+        route-orbit 90s linear infinite,
+        route-drift 18s ease-in-out infinite;
 }
 
-@keyframes float {
-    0%, 100% {
-        transform:
-            translate(0, 0)
-            rotate(0deg);
-    }
-
-    25% {
-        transform:
-            translate(20px, -30px)
-            rotate(5deg);
-    }
-
-    50% {
-        transform:
-            translate(-10px, 20px)
-            rotate(-3deg);
-    }
-
-    75% {
-        transform:
-            translate(15px, 10px)
-            rotate(2deg);
-    }
+/* inner ring */
+.hero-shape::before {
+    content: "";
+    position: absolute;
+    inset: 14%;
+    border-radius: 50%;
+    border: 1px solid var(--ring-soft);
 }
 
+/* the "plane" travelling along the route */
+.hero-shape::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow:
+        0 0 0 4px rgba(245, 184, 65, .18),
+        0 0 18px 4px rgba(245, 184, 65, .55);
+}
+
+/* ---------- Shape 2: compass ---------- */
+.hero-shape:nth-child(2) {
+    border: 1px solid var(--ring-soft);
+    animation-duration: 120s, 22s;
+    animation-direction: reverse, normal;
+}
+
+.hero-shape:nth-child(2)::before {
+    inset: 5%;
+    border: 0;
+    background: repeating-conic-gradient(rgba(255, 255, 255, .38) 0 .5deg, transparent .5deg 7.5deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+}
+
+.hero-shape:nth-child(2)::after {
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    background: #fff;
+    box-shadow: 0 0 12px 2px rgba(255, 255, 255, .5);
+}
+
+/* ---------- Shape 3: golden-hour glow ---------- */
+.hero-shape:nth-child(3) {
+    border: 0;
+    background: radial-gradient(
+        circle at 35% 30%,
+        rgba(255, 255, 255, .16),
+        rgba(56, 189, 248, .08) 55%,
+        transparent 72%
+    );
+    animation: route-drift 24s ease-in-out infinite;
+}
+
+.hero-shape:nth-child(3)::before,
+.hero-shape:nth-child(3)::after { display: none; }
+
+/* ---------- Motion ---------- */
+@keyframes route-orbit {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes route-drift {
+    0%, 100% { translate: 0 0; }
+    33%      { translate: 14px -18px; }
+    66%      { translate: -12px 12px; }
+}
+
+/* ---------- Small screens & accessibility ---------- */
+@media (max-width: 768px) {
+    .hero-shape { opacity: .65; }
+    .hero-shape:nth-child(3) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-shape { animation: none; }
+}
+/*================================
+Hero scene
+===================*/
+/* =========================================================
+   hero-scene.css — pure CSS travel landscape for the hero
+   Layers (back → front): sun, far mountains, near mountains,
+   sea + waves, sailboat, back hill (pines), front hill (tourists),
+   side hill.  Load AFTER style.css and hero-shapes.css.
+========================================================= */
+
+.hero {
+    position: relative;
+    overflow: hidden;
+    /* leave room so the text never sits on the landscape */
+    padding-bottom: clamp(140px, 22vw, 260px);
+}
+
+.hero-scene {
+    --scene-h: clamp(150px, 24vw, 300px);
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--scene-h);
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.hero-scene > * { position: absolute; }
+
+/* ---------- Sun ---------- */
+.sun {
+    left: calc(61% - 3vw);
+    bottom: 38%;
+    width: clamp(46px, 6vw, 84px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #fff3c4, #f5b841 60%, #f59e0b);
+    box-shadow:
+        0 0 0 clamp(8px, 1.6vw, 20px) rgba(245, 184, 65, .14),
+        0 0 60px 20px rgba(245, 184, 65, .35);
+}
+
+/* ---------- Mountains (triangle + snow cap) ---------- */
+.mountain {
+    left: var(--l);
+    bottom: 0;
+    width: var(--w);
+    height: var(--mh);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    background: linear-gradient(100deg, var(--lit) 50%, var(--shade) 50%);
+}
+
+.mountain::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 35%;
+    width: 30%;
+    height: 30%;
+    background: linear-gradient(100deg, rgba(255, 255, 255, .96) 50%, rgba(208, 222, 255, .92) 50%);
+    clip-path: polygon(50% 0, 100% 100%, 76% 78%, 58% 100%, 40% 80%, 22% 100%, 0 100%);
+}
+
+.mountain.far  { --lit: rgba(150, 178, 255, .38); --shade: rgba(105, 135, 225, .38); }
+.mountain.far::after { opacity: .7; }
+.mountain.near { --lit: rgba(96, 128, 212, .72);  --shade: rgba(58, 84, 170, .78); }
+
+.m5 { --l: -6%; --w: 26%; --mh: 62%; }
+.m1 { --l: 12%; --w: 30%; --mh: 80%; }
+.m2 { --l: 34%; --w: 32%; --mh: 92%; }
+.m3 { --l: 56%; --w: 30%; --mh: 68%; }
+.m4 { --l: 76%; --w: 32%; --mh: 56%; }
+
+/* ---------- Sea ---------- */
+.sea {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 27%;
+    background: linear-gradient(#27a9dc, #0d5d9c 70%, #0a4a82);
+}
+
+.wave {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background-repeat: repeat-x;
+    animation: wave-x var(--speed) linear infinite;
+}
+
+/* crest line that gives the sea its rippling top edge */
+.wave.w1 {
+    --tile: 44px;
+    --speed: 9s;
+    top: -10px;
+    background-image: radial-gradient(circle at 22px -3px, transparent 18px, #27a9dc 19px);
+    background-size: 44px 20px;
+}
+
+/* lighter foam lines */
+.wave.w2 {
+    --tile: 60px;
+    --speed: 14s;
+    top: 8px;
+    background-image: radial-gradient(circle at 30px -3px, transparent 25px, rgba(255, 255, 255, .16) 26px);
+    background-size: 60px 20px;
+    animation-direction: reverse;
+}
+
+@keyframes wave-x { to { background-position: var(--tile) 0; } }
+
+/* sun reflection */
+.sea::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(61% - 1vw);
+    width: 4vw;
+    background: repeating-linear-gradient(to bottom, rgba(245, 184, 65, .55) 0 3px, transparent 3px 9px);
+    -webkit-mask-image: linear-gradient(#000, transparent);
+            mask-image: linear-gradient(#000, transparent);
+    animation: glitter 3.2s ease-in-out infinite;
+}
+
+@keyframes glitter { 50% { opacity: .45; transform: scaleX(.8); } }
+
+/* ---------- Sailboat ---------- */
+.boat {
+    left: 70%;
+    bottom: 15%;
+    width: 44px;
+    height: 46px;
+    animation: boat-bob 5s ease-in-out infinite;
+}
+
+.boat::before { /* hull */
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 9px;
+    background: #f8fafc;
+    clip-path: polygon(0 0, 100% 0, 84% 100%, 16% 100%);
+}
+
+.boat i { /* main sail */
+    position: absolute;
+    left: 22px;
+    bottom: 9px;
+    width: 20px;
+    height: 34px;
+    background: #fff;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.boat::after { /* small sail */
+    content: "";
+    position: absolute;
+    left: 4px;
+    bottom: 9px;
+    width: 15px;
+    height: 24px;
+    background: #ffd98a;
+    clip-path: polygon(100% 20%, 100% 100%, 0 100%);
+}
+
+@keyframes boat-bob {
+    0%, 100% { translate: 0 0;   rotate: -2deg; }
+    50%      { translate: 0 -3px; rotate: 2deg; }
+}
+
+/* ---------- Hills ---------- */
+.hill {
+    bottom: 0;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, .12);
+}
+
+.hill.back  { left: -14%; width: 66%; height: 44%; background: linear-gradient(#2c8f6f, #17594a); }
+.hill.front { left: -6%;  width: 50%; height: 31%; background: linear-gradient(#39b487, #1e765d); }
+.hill.side  { right: -14%; width: 34%; height: 21%; background: linear-gradient(#2fa37b, #18604d); }
+
+/* pine trees on the back hill (position set inline: --x, --b) */
+.pine {
+    position: absolute;
+    left: var(--x);
+    bottom: var(--b);
+    width: 20px;
+    height: 34px;
+    background: linear-gradient(100deg, #1f7a5e 50%, #14503f 50%);
+    clip-path: polygon(50% 0, 78% 34%, 64% 34%, 90% 66%, 72% 66%, 100% 100%, 0 100%, 28% 66%, 10% 66%, 36% 34%, 22% 34%);
+}
+
+/* ---------- Tourists ---------- */
+.tourist {
+    --jacket: #ef4444;
+    --pants: #1e293b;
+    --hat: #fff;
+    --pack: #10b981;
+    --skin: #f1c7a0;
+
+    position: absolute;
+    left: var(--x);
+    bottom: calc(100% + 11px);
+    width: 12px;
+    height: 22px;
+    border-radius: 6px 6px 3px 3px;
+    background: var(--jacket);
+    animation: bob .7s ease-in-out infinite;
+}
+
+.tourist::before { /* head + cap */
+    content: "";
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: var(--skin);
+    box-shadow: inset 0 4px 0 var(--hat);
+}
+
+.tourist::after { /* backpack */
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: -6px;
+    width: 8px;
+    height: 15px;
+    border-radius: 4px;
+    background: var(--pack);
+}
+
+.tourist .leg {
+    position: absolute;
+    bottom: -14px;
+    width: 4px;
+    height: 15px;
+    border-radius: 2px;
+    background: var(--pants);
+    transform-origin: top center;
+    animation: step .7s ease-in-out infinite;
+}
+
+.tourist .leg.l { left: 2px; }
+.tourist .leg.r { right: 2px; animation-direction: reverse; }
+
+.tourist .arm {
+    position: absolute;
+    top: 3px;
+    right: -3px;
+    width: 3px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--jacket);
+    filter: brightness(.82);
+    transform-origin: top center;
+    animation: swing .7s ease-in-out infinite;
+}
+
+/* walker 1: strolls back and forth along the crest */
+.t1 { --x: 34%; animation: bob .7s ease-in-out infinite, stroll 22s linear infinite; }
+
+/* waving tourist: stands still */
+.t2 { --x: 50%; --jacket: #f5b841; --hat: #f97316; --pack: #6366f1; --skin: #c68b5f; animation-duration: 1.6s; }
+.t2 .leg { animation: none; transform: none; }
+.t2 .arm { animation: wave-arm 1.1s ease-in-out infinite; }
+
+/* child walking with walker 1 */
+.t3 { --x: 40%; --jacket: #38bdf8; --hat: #f43f5e; --pack: #f43f5e; --skin: #8d5a3b; zoom: .75;
+      animation: bob .6s ease-in-out infinite, stroll 22s linear infinite; }
+
+@keyframes bob   { 50% { transform: translateY(-1.5px); } }
+@keyframes step  { 0%, 100% { transform: rotate(24deg); } 50% { transform: rotate(-24deg); } }
+@keyframes swing { 0%, 100% { transform: rotate(22deg); } 50% { transform: rotate(-22deg); } }
+@keyframes wave-arm { 0%, 100% { transform: rotate(-165deg); } 50% { transform: rotate(-125deg); } }
+
+/* walk 70px right, turn around, walk back */
+@keyframes stroll {
+    0%       { translate: 0 0;    scale: 1 1; }
+    49.9%    { translate: 70px 0; scale: 1 1; }
+    50%      { translate: 70px 0; scale: -1 1; }
+    99.9%    { translate: 0 0;    scale: -1 1; }
+    100%     { translate: 0 0;    scale: 1 1; }
+}
+
+/* ---------- Responsive & accessibility ---------- */
+@media (max-width: 640px) {
+    .boat, .m5 { display: none; }
+    .pine:nth-child(n+4) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-scene *,
+    .hero-scene *::before,
+    .hero-scene *::after { animation: none !important; }
+}
 
 /* ============================================
    ITINERARY CARDS
@@ -1696,5 +2089,1801 @@ textarea.form-control {
 
     .detail-hero-overlay h1 {
         font-size: 30px;
+    }
+}
+/* ============================================================
+HERO ACTIONS
+============================================================ */
+
+.hero-actions {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 14px;
+flex-wrap: wrap;
+margin-top: 26px;
+}
+
+/* ============================================================
+WHATSAPP BUTTON
+============================================================ */
+
+.btn-whatsapp {
+background: #25D366;
+color: #fff !important;
+border: none;
+box-shadow: 0 8px 25px rgba(37, 211, 102, 0.22);
+text-decoration: none;
+}
+
+.btn-whatsapp:hover {
+background: #1ebe5d;
+color: #fff !important;
+transform: translateY(-2px);
+}
+
+/* ============================================================
+FILTER BAR
+============================================================ */
+
+.filter-wrapper {
+background: var(--card-bg, #fff);
+border: 1px solid var(--border, #e5e7eb);
+border-radius: 20px;
+padding: 22px;
+margin-bottom: 34px;
+box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
+}
+
+.filter-title {
+display: flex;
+align-items: center;
+gap: 10px;
+font-size: 18px;
+font-weight: 700;
+margin-bottom: 18px;
+}
+
+.filter-title i {
+color: var(--primary, #2f6f76);
+}
+
+.filter-controls {
+display: grid;
+grid-template-columns: 1fr 1fr auto;
+gap: 14px;
+align-items: end;
+}
+
+.filter-group {
+display: flex;
+flex-direction: column;
+gap: 7px;
+}
+
+.filter-group label {
+font-size: 13px;
+font-weight: 700;
+color: var(--text-muted, #6b7280);
+}
+
+.filter-group select,
+.filter-group input {
+width: 100%;
+height: 46px;
+border: 1px solid var(--border, #dfe3e8);
+border-radius: 11px;
+padding: 0 14px;
+background: var(--input-bg, #fff);
+color: var(--text, #222);
+outline: none;
+font: inherit;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+border-color: var(--primary, #2f6f76);
+box-shadow: 0 0 0 3px rgba(47, 111, 118, 0.10);
+}
+
+.filter-reset {
+height: 46px;
+border: 1px solid var(--border, #dfe3e8);
+border-radius: 11px;
+padding: 0 18px;
+background: transparent;
+color: var(--text, #222);
+cursor: pointer;
+font-weight: 600;
+transition: 0.2s ease;
+}
+
+.filter-reset:hover {
+background: var(--primary, #2f6f76);
+border-color: var(--primary, #2f6f76);
+color: #fff;
+}
+
+.filter-result {
+margin-top: 15px;
+font-size: 14px;
+color: var(--text-muted, #6b7280);
+}
+
+.filter-result strong {
+color: var(--primary, #2f6f76);
+}
+
+.filter-no-results {
+grid-column: 1 / -1;
+text-align: center;
+padding: 60px 20px;
+}
+
+.filter-no-results i {
+font-size: 48px;
+margin-bottom: 15px;
+color: var(--text-muted, #8b929a);
+}
+
+.filter-no-results h3 {
+margin-bottom: 8px;
+}
+
+/* ============================================================
+WHATSAPP CTA SECTION
+============================================================ */
+
+.whatsapp-section {
+padding: 30px 0 70px;
+}
+
+.whatsapp-card {
+position: relative;
+overflow: hidden;
+display: flex;
+align-items: center;
+gap: 25px;
+padding: 32px;
+border-radius: 24px;
+background: linear-gradient(
+135deg,
+#075e54,
+#128c7e
+);
+color: #fff;
+box-shadow: 0 18px 45px rgba(7, 94, 84, 0.22);
+}
+
+.whatsapp-icon-large {
+width: 70px;
+height: 70px;
+flex: 0 0 70px;
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 20px;
+background: rgba(255, 255, 255, 0.15);
+font-size: 38px;
+}
+
+.whatsapp-content {
+flex: 1;
+}
+
+.whatsapp-label {
+display: inline-block;
+margin-bottom: 6px;
+font-size: 11px;
+font-weight: 800;
+letter-spacing: 1.5px;
+opacity: 0.75;
+}
+
+.whatsapp-content h2 {
+margin: 0 0 8px;
+font-size: 28px;
+}
+
+.whatsapp-content p {
+margin: 0;
+max-width: 650px;
+line-height: 1.65;
+opacity: 0.88;
+}
+
+.whatsapp-card .btn-whatsapp {
+background: #fff;
+color: #075e54 !important;
+white-space: nowrap;
+}
+
+.whatsapp-card .btn-whatsapp:hover {
+background: #f4f4f4;
+}
+
+/* ============================================================
+FLOATING WHATSAPP
+============================================================ */
+
+.floating-whatsapp {
+position: fixed;
+right: 24px;
+bottom: 24px;
+z-index: 998;
+display: flex;
+align-items: center;
+gap: 9px;
+min-height: 54px;
+padding: 0 18px;
+border-radius: 999px;
+background: #25D366;
+color: #fff !important;
+text-decoration: none;
+box-shadow: 0 10px 30px rgba(37, 211, 102, 0.35);
+font-weight: 700;
+transition: 0.25s ease;
+}
+
+.floating-whatsapp i {
+font-size: 25px;
+}
+
+.floating-whatsapp:hover {
+transform: translateY(-3px) scale(1.02);
+background: #1ebe5d;
+}
+
+/* ============================================================
+CHATBOT
+============================================================ */
+
+.chatbot {
+position: fixed;
+right: 24px;
+bottom: 92px;
+z-index: 999;
+}
+
+.chatbot-toggle {
+position: relative;
+width: 58px;
+height: 58px;
+border: 0;
+border-radius: 50%;
+background: var(--primary, #2f6f76);
+color: #fff;
+cursor: pointer;
+font-size: 21px;
+box-shadow: 0 12px 30px rgba(0, 0, 0, 0.20);
+transition: 0.25s ease;
+}
+
+.chatbot-toggle:hover {
+transform: translateY(-3px);
+}
+
+.chatbot-notification {
+position: absolute;
+top: -3px;
+right: -2px;
+width: 20px;
+height: 20px;
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 50%;
+background: #e74c3c;
+color: #fff;
+font-size: 11px;
+font-weight: 800;
+border: 2px solid #fff;
+}
+
+.chatbot-window {
+position: absolute;
+right: 0;
+bottom: 72px;
+width: 370px;
+max-width: calc(100vw - 30px);
+height: 530px;
+max-height: calc(100vh - 130px);
+display: flex;
+flex-direction: column;
+overflow: hidden;
+border-radius: 22px;
+background: var(--card-bg, #fff);
+border: 1px solid var(--border, #e5e7eb);
+box-shadow: 0 22px 60px rgba(0, 0, 0, 0.20);
+
+
+opacity: 0;
+visibility: hidden;
+transform: translateY(15px) scale(0.97);
+transform-origin: bottom right;
+transition: 0.22s ease;
+
+
+}
+
+.chatbot-window.open {
+opacity: 1;
+visibility: visible;
+transform: translateY(0) scale(1);
+}
+
+.chatbot-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 15px 17px;
+background: var(--primary, #2f6f76);
+color: #fff;
+}
+
+.chatbot-header-info {
+display: flex;
+align-items: center;
+gap: 11px;
+}
+
+.chatbot-avatar {
+width: 40px;
+height: 40px;
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 50%;
+background: rgba(255, 255, 255, 0.17);
+}
+
+.chatbot-header-info strong {
+display: block;
+font-size: 14px;
+}
+
+.chatbot-header-info small {
+display: flex;
+align-items: center;
+gap: 5px;
+margin-top: 2px;
+font-size: 11px;
+opacity: 0.85;
+}
+
+.online-dot {
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: #62f28d;
+}
+
+.chatbot-close {
+width: 34px;
+height: 34px;
+border: 0;
+border-radius: 50%;
+background: transparent;
+color: #fff;
+cursor: pointer;
+font-size: 17px;
+}
+
+.chatbot-close:hover {
+background: rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================================
+CHAT MESSAGES
+============================================================ */
+
+.chatbot-messages {
+flex: 1;
+overflow-y: auto;
+padding: 18px 14px;
+background: var(--chat-bg, #f7f9fa);
+scroll-behavior: smooth;
+}
+
+.bot-message,
+.user-message {
+display: flex;
+margin-bottom: 14px;
+}
+
+.bot-message {
+align-items: flex-start;
+gap: 8px;
+}
+
+.user-message {
+justify-content: flex-end;
+}
+
+.message-avatar {
+width: 28px;
+height: 28px;
+flex: 0 0 28px;
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 50%;
+background: var(--primary, #2f6f76);
+color: #fff;
+font-size: 12px;
+}
+
+.message-content {
+max-width: 82%;
+padding: 11px 13px;
+border-radius: 15px;
+background: #fff;
+color: var(--text, #222);
+font-size: 13px;
+line-height: 1.55;
+box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+}
+
+.user-message .message-content {
+background: var(--primary, #2f6f76);
+color: #fff;
+border-bottom-right-radius: 4px;
+}
+
+.bot-message .message-content {
+border-top-left-radius: 4px;
+}
+
+.quick-replies {
+display: flex;
+flex-direction: column;
+gap: 7px;
+margin-top: 13px;
+}
+
+.quick-replies button {
+padding: 8px 10px;
+border: 1px solid var(--border, #dfe3e8);
+border-radius: 9px;
+background: transparent;
+color: var(--primary, #2f6f76);
+cursor: pointer;
+text-align: left;
+font-size: 12px;
+font-weight: 600;
+}
+
+.quick-replies button:hover {
+background: rgba(47, 111, 118, 0.07);
+}
+
+.chat-whatsapp-link {
+display: inline-flex;
+align-items: center;
+gap: 7px;
+margin-top: 4px;
+padding: 8px 11px;
+border-radius: 9px;
+background: #25D366;
+color: #fff !important;
+text-decoration: none;
+font-size: 12px;
+font-weight: 700;
+}
+
+/* ============================================================
+TYPING INDICATOR
+============================================================ */
+
+.typing-dots {
+display: flex;
+align-items: center;
+gap: 4px;
+padding: 13px 15px;
+border-radius: 15px;
+border-top-left-radius: 4px;
+background: #fff;
+box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+}
+
+.typing-dots span {
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: #9ca3af;
+animation: chatbotTyping 1.2s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2) {
+animation-delay: 0.15s;
+}
+
+.typing-dots span:nth-child(3) {
+animation-delay: 0.3s;
+}
+
+@keyframes chatbotTyping {
+
+
+0%,
+60%,
+100% {
+    transform: translateY(0);
+}
+
+30% {
+    transform: translateY(-4px);
+}
+
+
+}
+
+/* ============================================================
+CHAT INPUT
+============================================================ */
+
+.chatbot-input-area {
+display: flex;
+gap: 8px;
+padding: 11px;
+border-top: 1px solid var(--border, #e5e7eb);
+background: var(--card-bg, #fff);
+}
+
+.chatbot-input-area input {
+flex: 1;
+min-width: 0;
+height: 43px;
+padding: 0 13px;
+border: 1px solid var(--border, #dfe3e8);
+border-radius: 11px;
+background: var(--input-bg, #fff);
+color: var(--text, #222);
+outline: none;
+font: inherit;
+font-size: 13px;
+}
+
+.chatbot-input-area input:focus {
+border-color: var(--primary, #2f6f76);
+}
+
+.chatbot-input-area button {
+width: 43px;
+height: 43px;
+flex: 0 0 43px;
+border: 0;
+border-radius: 11px;
+background: var(--primary, #2f6f76);
+color: #fff;
+cursor: pointer;
+}
+
+.chatbot-footer {
+padding: 6px;
+text-align: center;
+font-size: 9px;
+color: var(--text-muted, #8b929a);
+background: var(--card-bg, #fff);
+}
+
+/* ============================================================
+MOBILE
+============================================================ */
+
+@media (max-width: 768px) {
+
+.filter-controls {
+    grid-template-columns: 1fr;
+}
+
+.filter-reset {
+    width: 100%;
+}
+
+.whatsapp-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 25px;
+}
+
+.whatsapp-card .btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.whatsapp-content h2 {
+    font-size: 23px;
+}
+
+.floating-whatsapp {
+    right: 15px;
+    bottom: 15px;
+    width: 52px;
+    height: 52px;
+    min-height: 52px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.floating-whatsapp i {
+    font-size: 24px;
+}
+
+.floating-whatsapp-text {
+    display: none;
+}
+
+.chatbot {
+    right: 15px;
+    bottom: 78px;
+}
+
+.chatbot-window {
+    right: 0;
+    width: min(370px, calc(100vw - 30px));
+    height: min(530px, calc(100vh - 120px));
+}
+
+.chatbot-toggle {
+    width: 54px;
+    height: 54px;
+}
+
+
+}
+
+
+
+/* ============================================================
+   UNIVERSAL RESPONSIVE ENHANCEMENTS
+   Desktop → Laptop → Tablet → Mobile → Small Mobile
+   ============================================================ */
+
+/* Prevent horizontal overflow on every viewport */
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    min-width: 0;
+}
+
+.container,
+.container-wide {
+    width: 100%;
+}
+
+/* Flexible media and long text */
+img,
+svg,
+video,
+canvas,
+iframe {
+    max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+    max-width: 100%;
+}
+
+.btn {
+    white-space: normal;
+}
+
+/* Better grid behavior on medium screens */
+.card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.detail-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+}
+
+.footer-grid {
+    grid-template-columns: minmax(0, 2fr) repeat(2, minmax(150px, 1fr));
+}
+
+.form-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.filter-controls {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+/* ============================================================
+   LARGE LAPTOP / SMALL DESKTOP
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .container,
+    .container-wide {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .hero-content {
+        max-width: 620px;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(42px, 5vw, 52px);
+    }
+
+    .card-grid {
+        gap: 24px;
+    }
+
+    .detail-grid {
+        gap: 28px;
+    }
+
+    .footer-grid {
+        gap: 28px;
+    }
+
+    .admin-content {
+        padding: 26px;
+    }
+
+    .admin-topbar {
+        padding-left: 26px;
+        padding-right: 26px;
+    }
+}
+
+/* ============================================================
+   TABLET / SMALL LAPTOP
+   ============================================================ */
+
+@media (max-width: 1024px) {
+
+    .section {
+        padding: 64px 0;
+    }
+
+    .navbar-inner {
+        min-height: 66px;
+    }
+
+    .navbar-nav {
+        gap: 3px;
+    }
+
+    .navbar-nav a {
+        padding: 8px 11px;
+        font-size: 14px;
+    }
+
+    .hero {
+        min-height: 500px;
+    }
+
+    .hero-content {
+        max-width: 600px;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(38px, 6vw, 48px);
+    }
+
+    .hero-content p {
+        font-size: 18px;
+    }
+
+    .card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+    }
+
+    .itin-card-img {
+        height: 200px;
+    }
+
+    .detail-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sidebar-box {
+        position: static;
+    }
+
+    .detail-hero {
+        height: 380px;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1.5fr 1fr 1fr;
+    }
+
+    /* Admin becomes a compact two-column layout */
+    .admin-sidebar {
+        width: 220px;
+    }
+
+    .admin-main {
+        margin-left: 220px;
+    }
+
+    .admin-sidebar-brand {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .admin-nav li a {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .admin-content {
+        padding: 22px;
+    }
+
+    .admin-topbar {
+        padding: 14px 22px;
+    }
+
+    .form-card {
+        max-width: 100%;
+        padding: 26px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 12px 14px;
+    }
+
+    .whatsapp-card {
+        gap: 20px;
+    }
+}
+
+/* ============================================================
+   TABLET PORTRAIT
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+    .navbar-nav a {
+        padding: 7px 8px;
+        font-size: 13px;
+    }
+
+    .navbar-brand {
+        font-size: 20px;
+    }
+
+    .hero {
+        min-height: 470px;
+    }
+
+    .hero-content h1 {
+        font-size: 40px;
+    }
+
+    .hero-content p {
+        max-width: 520px;
+    }
+
+    .card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .itin-card-body {
+        padding: 20px;
+    }
+
+    .itin-card-meta {
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-grid > :first-child {
+        grid-column: 1 / -1;
+    }
+
+    .filter-controls {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-reset {
+        width: 100%;
+    }
+
+    .whatsapp-card {
+        flex-wrap: wrap;
+    }
+
+    .whatsapp-content {
+        min-width: 0;
+    }
+
+    .whatsapp-card .btn-whatsapp {
+        margin-left: 90px;
+    }
+}
+
+/* ============================================================
+   MOBILE — 768PX
+   ============================================================ */
+
+@media (max-width: 768px) {
+
+    :root {
+        --radius: 10px;
+        --radius-sm: 7px;
+    }
+
+    .container,
+    .container-wide {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .section {
+        padding: 52px 0;
+    }
+
+    /* ---------- Navigation ---------- */
+
+    .navbar-inner {
+        height: 62px;
+        min-height: 62px;
+    }
+
+    .navbar-brand {
+        min-width: 0;
+        gap: 9px;
+        font-size: 18px;
+    }
+
+    .navbar-brand span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .navbar-brand .brand-icon {
+        width: 35px;
+        height: 35px;
+        flex: 0 0 35px;
+    }
+
+    .navbar-nav {
+        gap: 2px;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .navbar-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .navbar-nav a {
+        padding: 7px 9px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    /* ---------- Hero ---------- */
+
+    .hero {
+        min-height: 450px;
+        padding: 65px 0;
+    }
+
+    .hero-content {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(31px, 8vw, 40px);
+        line-height: 1.12;
+    }
+
+    .hero-content p {
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 24px;
+    }
+
+    .hero-actions {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
+    .hero-actions .btn {
+        flex: 1 1 180px;
+        min-width: 0;
+        justify-content: center;
+    }
+
+    .hero::before {
+        width: 360px;
+        height: 360px;
+        right: -130px;
+        top: -120px;
+    }
+
+    .hero::after {
+        width: 420px;
+        height: 320px;
+        left: -180px;
+    }
+
+    /* ---------- Cards ---------- */
+
+    .card-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .itin-card-img {
+        height: 210px;
+    }
+
+    .itin-card-body {
+        padding: 18px;
+    }
+
+    .itin-card-body h3 {
+        font-size: 20px;
+    }
+
+    .itin-card-footer {
+        gap: 12px;
+        align-items: center;
+    }
+
+    .itin-price {
+        font-size: 22px;
+    }
+
+    .itin-card-footer .btn {
+        flex-shrink: 0;
+    }
+
+    /* ---------- Detail page ---------- */
+
+    .detail-hero {
+        height: 330px;
+        border-radius: 0 0 10px 10px;
+    }
+
+    .detail-hero-overlay {
+        padding: 28px 20px;
+    }
+
+    .detail-hero-overlay h1 {
+        font-size: clamp(27px, 7vw, 36px);
+    }
+
+    .detail-hero-overlay .dest-tag {
+        font-size: 16px;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .info-box {
+        padding: 21px;
+        margin-bottom: 18px;
+    }
+
+    .info-box h2 {
+        font-size: 20px;
+    }
+
+    .sidebar-box {
+        padding: 22px;
+    }
+
+    .sidebar-box .price-big {
+        font-size: 31px;
+    }
+
+    .day-card-header {
+        padding: 14px 16px;
+    }
+
+    .day-card-body {
+        padding: 14px 16px;
+    }
+
+    .day-card-body .day-meta {
+        flex-wrap: wrap;
+        gap: 8px 14px;
+    }
+
+    /* ---------- Footer ---------- */
+
+    .footer {
+        padding: 48px 0 25px;
+        margin-top: 55px;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 25px 20px;
+    }
+
+    .footer-grid > :first-child {
+        grid-column: 1 / -1;
+    }
+
+    /* ---------- Forms ---------- */
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .form-card {
+        padding: 21px;
+    }
+
+    .form-control {
+        min-height: 46px;
+    }
+
+    /* ---------- Filters ---------- */
+
+    .filter-wrapper {
+        padding: 18px;
+        margin-bottom: 24px;
+        border-radius: 16px;
+    }
+
+    .filter-controls {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .filter-group select,
+    .filter-group input,
+    .filter-reset {
+        height: 45px;
+    }
+
+    /* ---------- WhatsApp CTA ---------- */
+
+    .whatsapp-section {
+        padding: 20px 0 55px;
+    }
+
+    .whatsapp-card {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 23px;
+        gap: 16px;
+        border-radius: 19px;
+    }
+
+    .whatsapp-icon-large {
+        width: 58px;
+        height: 58px;
+        flex-basis: 58px;
+        border-radius: 16px;
+        font-size: 30px;
+    }
+
+    .whatsapp-content {
+        width: 100%;
+    }
+
+    .whatsapp-content h2 {
+        font-size: 23px;
+    }
+
+    .whatsapp-content p {
+        font-size: 14px;
+    }
+
+    .whatsapp-card .btn-whatsapp {
+        width: 100%;
+        margin-left: 0;
+        justify-content: center;
+    }
+
+    /* ---------- Admin ---------- */
+
+    .admin-layout {
+        display: block;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        width: min(280px, 82vw);
+        height: 100dvh;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .admin-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .admin-main {
+        margin-left: 0;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .admin-topbar {
+        min-height: 62px;
+        padding: 12px 16px;
+    }
+
+    .admin-topbar h1 {
+        font-size: 19px;
+    }
+
+    .admin-content {
+        padding: 18px;
+    }
+
+    .data-table {
+        display: table;
+        width: 100%;
+        min-width: 680px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    /* Put wide tables inside a scrollable wrapper when available */
+    .table-responsive,
+    .data-table-wrapper,
+    .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius);
+    }
+
+    /* ---------- Login ---------- */
+
+    .login-page {
+        min-height: 100dvh;
+        padding: 20px 0;
+    }
+
+    .login-card {
+        width: min(420px, calc(100% - 32px));
+        padding: 30px 22px;
+    }
+
+    /* ---------- Floating controls ---------- */
+
+    .floating-whatsapp {
+        right: 14px;
+        bottom: max(14px, env(safe-area-inset-bottom));
+        width: 52px;
+        height: 52px;
+        min-height: 52px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .floating-whatsapp-text {
+        display: none;
+    }
+
+    .chatbot {
+        right: 14px;
+        bottom: 76px;
+    }
+
+    .chatbot-window {
+        right: 0;
+        width: min(370px, calc(100vw - 28px));
+        height: min(530px, calc(100dvh - 110px));
+        max-height: calc(100dvh - 110px);
+    }
+
+    .chatbot-toggle {
+        width: 54px;
+        height: 54px;
+    }
+}
+
+/* ============================================================
+   SMALL MOBILE — 600PX
+   ============================================================ */
+
+@media (max-width: 600px) {
+
+    .container,
+    .container-wide {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .section {
+        padding: 44px 0;
+    }
+
+    .navbar-inner {
+        gap: 8px;
+    }
+
+    .navbar-brand {
+        flex: 1 1 auto;
+    }
+
+    .navbar-nav {
+        flex: 0 1 auto;
+    }
+
+    .navbar-nav a {
+        padding: 6px 7px;
+        font-size: 12px;
+    }
+
+    .navbar-nav a:not(.active) {
+        /* Keeps navigation compact without hiding links */
+        max-width: 100px;
+    }
+
+    .hero {
+        min-height: 430px;
+        padding: 55px 0;
+    }
+
+    .hero-content h1 {
+        font-size: 31px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+        flex: 1 1 auto;
+    }
+
+    .itin-card-img {
+        height: 195px;
+    }
+
+    .itin-card-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .itin-card-footer .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .itin-price {
+        font-size: 21px;
+    }
+
+    .detail-hero {
+        height: 300px;
+    }
+
+    .detail-hero-overlay {
+        padding: 22px 16px;
+    }
+
+    .detail-hero-overlay h1 {
+        font-size: 27px;
+    }
+
+    .info-box,
+    .sidebar-box {
+        padding: 18px;
+    }
+
+    .highlight-list li {
+        align-items: flex-start;
+        font-size: 14px;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 22px;
+    }
+
+    .footer-grid > :first-child {
+        grid-column: auto;
+    }
+
+    .admin-content {
+        padding: 14px;
+    }
+
+    .admin-topbar {
+        padding: 11px 14px;
+    }
+
+    .admin-topbar h1 {
+        font-size: 17px;
+    }
+
+    .form-card {
+        padding: 17px;
+        border-top-width: 3px;
+    }
+
+    .day-plan-row {
+        padding: 17px 15px;
+        padding-right: 48px;
+    }
+
+    .filter-wrapper {
+        padding: 15px;
+    }
+
+    .filter-title {
+        font-size: 16px;
+    }
+
+    .whatsapp-card {
+        padding: 20px;
+    }
+
+    .whatsapp-content h2 {
+        font-size: 21px;
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 20px);
+        right: -5px;
+        height: min(560px, calc(100dvh - 95px));
+        max-height: calc(100dvh - 95px);
+        border-radius: 18px;
+    }
+}
+
+/* ============================================================
+   VERY SMALL PHONES — 420PX
+   ============================================================ */
+
+@media (max-width: 420px) {
+
+    .container,
+    .container-wide {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .section {
+        padding: 38px 0;
+    }
+
+    .navbar-inner {
+        height: 58px;
+        min-height: 58px;
+    }
+
+    .navbar-brand {
+        gap: 7px;
+        font-size: 16px;
+    }
+
+    .navbar-brand .brand-icon {
+        width: 32px;
+        height: 32px;
+        flex-basis: 32px;
+        font-size: 16px;
+    }
+
+    .navbar-nav a {
+        padding: 5px 6px;
+        font-size: 11px;
+    }
+
+    .hero {
+        min-height: 410px;
+        padding: 48px 0;
+    }
+
+    .hero-content h1 {
+        font-size: 28px;
+    }
+
+    .hero-content p {
+        font-size: 15px;
+    }
+
+    .itin-card-img {
+        height: 175px;
+    }
+
+    .itin-card-body {
+        padding: 16px;
+    }
+
+    .itin-card-body h3 {
+        font-size: 19px;
+    }
+
+    .itin-card-body .dest,
+    .itin-card-body .desc {
+        font-size: 14px;
+    }
+
+    .itin-card-meta {
+        gap: 8px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .detail-hero {
+        height: 260px;
+    }
+
+    .detail-hero-overlay h1 {
+        font-size: 24px;
+    }
+
+    .detail-hero-overlay .dest-tag {
+        font-size: 14px;
+    }
+
+    .day-num {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+    }
+
+    .day-card-header {
+        padding: 12px 13px;
+        gap: 9px;
+    }
+
+    .day-card-body {
+        padding: 13px;
+    }
+
+    .sidebar-box .price-big {
+        font-size: 28px;
+    }
+
+    .login-card {
+        width: calc(100% - 24px);
+        padding: 25px 17px;
+    }
+
+    .login-card h2 {
+        font-size: 24px;
+    }
+
+    .admin-content {
+        padding: 11px;
+    }
+
+    .admin-topbar {
+        padding: 10px 11px;
+    }
+
+    .form-card {
+        padding: 15px;
+    }
+
+    .whatsapp-card {
+        padding: 17px;
+    }
+
+    .whatsapp-icon-large {
+        width: 52px;
+        height: 52px;
+        flex-basis: 52px;
+        font-size: 27px;
+    }
+
+    .chatbot {
+        right: 10px;
+        bottom: 70px;
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 16px);
+        right: -2px;
+        border-radius: 16px;
+    }
+
+    .chatbot-header {
+        padding: 13px 14px;
+    }
+
+    .chatbot-messages {
+        padding: 14px 10px;
+    }
+
+    .message-content {
+        max-width: 88%;
+        font-size: 12.5px;
+    }
+
+    .chatbot-input-area {
+        padding: 8px;
+    }
+}
+
+/* ============================================================
+   ULTRA-SMALL DEVICES — 360PX
+   ============================================================ */
+
+@media (max-width: 360px) {
+
+    .navbar-brand span {
+        max-width: 105px;
+    }
+
+    .navbar-nav a {
+        padding-left: 5px;
+        padding-right: 5px;
+        font-size: 10px;
+    }
+
+    .hero-content h1 {
+        font-size: 25px;
+    }
+
+    .hero-content p {
+        font-size: 14px;
+    }
+
+    .btn {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .btn-lg {
+        padding: 13px 18px;
+        font-size: 15px;
+    }
+
+    .itin-card-img {
+        height: 155px;
+    }
+
+    .itin-card-body {
+        padding: 14px;
+    }
+
+    .detail-hero {
+        height: 235px;
+    }
+
+    .detail-hero-overlay {
+        padding: 18px 13px;
+    }
+
+    .detail-hero-overlay h1 {
+        font-size: 22px;
+    }
+
+    .info-box,
+    .sidebar-box {
+        padding: 15px;
+    }
+
+    .whatsapp-content h2 {
+        font-size: 19px;
+    }
+
+    .floating-whatsapp {
+        right: 10px;
+        width: 49px;
+        height: 49px;
+        min-height: 49px;
+    }
+
+    .chatbot {
+        right: 8px;
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 12px);
+        right: -2px;
+    }
+}
+
+/* ============================================================
+   LANDSCAPE PHONES
+   ============================================================ */
+
+@media (max-height: 520px) and (orientation: landscape) {
+
+    .hero {
+        min-height: 420px;
+        padding: 40px 0;
+    }
+
+    .login-page {
+        align-items: flex-start;
+        overflow-y: auto;
+        padding: 25px 0;
+    }
+
+    .login-card {
+        margin: 10px auto;
+    }
+
+    .chatbot-window {
+        height: calc(100dvh - 70px);
+        max-height: calc(100dvh - 70px);
+    }
+}
+
+/* ============================================================
+   ACCESSIBILITY / TOUCH IMPROVEMENTS
+   ============================================================ */
+
+@media (hover: none) and (pointer: coarse) {
+
+    .itin-card:hover,
+    .btn-primary:hover,
+    .btn-accent:hover,
+    .floating-whatsapp:hover,
+    .chatbot-toggle:hover {
+        transform: none;
+    }
+
+    .btn,
+    button,
+    .navbar-nav a,
+    .admin-nav a,
+    .filter-reset {
+        min-height: 44px;
+    }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Safe-area support for modern phones */
+@supports (padding: max(0px)) {
+
+    .floating-whatsapp {
+        bottom: max(14px, env(safe-area-inset-bottom));
+    }
+
+    .chatbot {
+        bottom: max(76px, calc(76px + env(safe-area-inset-bottom)));
     }
 }

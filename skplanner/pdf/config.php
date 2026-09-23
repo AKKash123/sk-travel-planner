@@ -100,7 +100,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/error-handler.php';
+
 // ============================================
 // SECURITY HEADERS
 // ============================================

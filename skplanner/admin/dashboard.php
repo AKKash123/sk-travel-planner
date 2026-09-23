@@ -480,6 +480,7 @@ if ($page > $totalPages) $page = $totalPages;
             <li><a href="backup.php"><i class="fas fa-database"></i> DB Backup</a></li>
             <div class="nav-divider"></div>
             <li><a href="../index.php"><i class="fas fa-globe"></i> View Website</a></li>
+            <li><a href="change-password.php"><i class="fas fa-key"></i> Password update</a></li>
             <div class="nav-divider"></div>
             <li><a href="logout.php" style="color:rgba(255,255,255,0.4);"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
         </ul>
@@ -666,10 +667,10 @@ if ($page > $totalPages) $page = $totalPages;
                                                class="action-btn edit" title="Edit">
                                                 <i class="fas fa-pen"></i>
                                             </a>
-                                            <a href="../download-pdf.php?id=<?= (int)$itin['id'] ?>"
+                                            <!-- <a href="../download-pdf.php?id=<?= (int)$itin['id'] ?>"
                                                class="action-btn pdf" title="Download PDF">
                                                 <i class="fas fa-file-pdf"></i>
-                                            </a>
+                                            </a> -->
                                             <a href="itinerary-action.php?action=toggle&id=<?= (int)$itin['id'] ?>"
                                                class="action-btn toggle <?= $itin['status'] ? '' : 'off' ?>"
                                                title="<?= $itin['status'] ? 'Deactivate' : 'Activate' ?>">
