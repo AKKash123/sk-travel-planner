@@ -50,7 +50,7 @@ $appConfig = [
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="extras.css">
+    <link rel="stylesheet" href="extra.css">
 
             <!-- Title icon / Favicon -->
         <link rel="icon" type="image/png" sizes="32x32" href="logo.jpg">
@@ -72,6 +72,10 @@ $appConfig = [
 </head>
 
 <body>
+
+<div class="page-loader" id="pageLoader" role="status" aria-label="Loading page">
+    <span class="page-loader-spinner" aria-hidden="true"></span>
+</div>
 
 <!-- =========================================================
      NAVBAR
