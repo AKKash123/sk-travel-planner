@@ -428,7 +428,7 @@ $appConfig = [
                 class="btn btn-whatsapp btn-lg"
             >
                 <i class="fab fa-whatsapp"></i>
-                Chat on WhatsApp
+                WhatsApp
             </a>
 
         </div>
@@ -501,10 +501,9 @@ $appConfig = [
     target="_blank"
     rel="noopener"
     class="floating-whatsapp"
-    aria-label="Chat with us on WhatsApp"
+    aria-label="Chat on WhatsApp"
 >
     <i class="fab fa-whatsapp"></i>
-    <span class="floating-whatsapp-text">Chat with us</span>
 </a>
 
 <!-- =========================================================
