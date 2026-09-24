@@ -23,6 +23,11 @@
     const regexEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const plural = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
 
+    window.addEventListener('load', function () {
+        const loader = $('#pageLoader');
+        if (loader) loader.classList.add('is-hidden');
+    }, { once: true });
+
     const store = {
         get(key, fallback) {
             try {

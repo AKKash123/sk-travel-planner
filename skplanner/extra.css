@@ -10,6 +10,40 @@
 
 .is-hidden { display: none !important; }
 
+/* ---------- Initial page loader ---------- */
+.page-loader {
+    display: none;
+}
+
+.js .page-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    background: var(--light, #fff8f0);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .3s ease, visibility .3s ease;
+}
+
+.js .page-loader.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.page-loader-spinner {
+    width: 46px;
+    height: 46px;
+    border: 4px solid rgba(217, 108, 63, .2);
+    border-top-color: var(--primary, #d96c3f);
+    border-radius: 50%;
+    animation: page-spin .8s linear infinite;
+}
+
+@keyframes page-spin { to { transform: rotate(360deg); } }
+
 /* ---------- Skeleton loader ---------- */
 .skeleton {
     position: relative;
@@ -145,6 +179,77 @@
 .chatbot-header-actions { display: flex; align-items: center; gap: 4px; }
 
 .chatbot-messages { scroll-behavior: smooth; }
+
+/* ---------- Responsive chatbot sizing ---------- */
+.chatbot {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(78px, calc(14px + env(safe-area-inset-bottom)));
+}
+
+.chatbot-window {
+    width: min(370px, calc(100vw - 24px));
+    height: min(530px, calc(100dvh - 120px));
+    max-height: calc(100dvh - 120px);
+}
+
+.chatbot-header,
+.chatbot-input-area,
+.chatbot-footer {
+    flex: 0 0 auto;
+}
+
+.chatbot-messages {
+    min-height: 0;
+}
+
+.message-content {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.quick-replies button {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .chatbot {
+        right: max(10px, env(safe-area-inset-right));
+    }
+
+    .chatbot-window {
+        width: min(370px, calc(100vw - 20px));
+        height: min(560px, calc(100dvh - 100px));
+        max-height: calc(100dvh - 100px);
+        border-radius: 18px;
+    }
+
+    .chatbot-input-area input {
+        font-size: 16px;
+    }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+    .chatbot {
+        bottom: max(10px, env(safe-area-inset-bottom));
+    }
+
+    .chatbot-window {
+        height: min(440px, calc(100dvh - 128px));
+        max-height: calc(100dvh - 128px);
+    }
+}
+
+@media (max-height: 700px) and (orientation: portrait) {
+    .chatbot {
+        bottom: max(10px, env(safe-area-inset-bottom));
+    }
+
+    .chatbot-window {
+        height: min(560px, calc(100dvh - 128px));
+        max-height: calc(100dvh - 128px);
+    }
+}
 
 /* Suggested packages inside chat */
 .chat-pkgs { display: grid; gap: 8px; margin: 10px 0 4px; }
