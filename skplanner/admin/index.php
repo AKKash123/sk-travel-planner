@@ -47,13 +47,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Admin Login — <?= e(APP_NAME) ?></title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../logo.jpg">
+        <link rel="icon" type="image/png" sizes="16x16" href="../logo.jpg">
+        <link rel="icon" type="image/x-icon" href="../logo.jpg">
+
+        <!-- Apple Touch Icon -->
+        <link rel="apple-touch-icon" sizes="180x180" href="../logo.jpg">
 </head>
 <body class="login-page">
 
 <div class="login-card">
     <div style="text-align:center;margin-bottom:24px;">
         <span class="brand-icon" style="display:inline-flex;width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--accent-dark));border-radius:14px;align-items:center;justify-content:center;font-size:28px;color:white;margin-bottom:12px;">
-            <i class="fas fa-plane"></i>
+           <img src="../logo.jpg" alt="Logo">
         </span>
     </div>
     <h2>Admin Login</h2>

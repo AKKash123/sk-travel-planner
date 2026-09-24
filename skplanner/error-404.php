@@ -31,6 +31,12 @@ if (strpos($path, 'bali') !== false || strpos($path, 'travel') !== false) $sugge
 <title>Page Not Found — <?= e(APP_NAME) ?></title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="icon" type="image/png" sizes="32x32" href="../logo.jpg">
+        <link rel="icon" type="image/png" sizes="16x16" href="../logo.jpg">
+        <link rel="icon" type="image/x-icon" href="../logo.jpg">
+
+        <!-- Apple Touch Icon -->
+        <link rel="apple-touch-icon" sizes="180x180" href="../logo.jpg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Source Sans 3',sans-serif;background:#F7F3ED;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;color:#2D2D2D;}

@@ -95,6 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Database Backup — <?= e(APP_NAME) ?> Admin</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../logo.jpg">
+        <link rel="icon" type="image/png" sizes="16x16" href="../logo.jpg">
+        <link rel="icon" type="image/x-icon" href="../logo.jpg">
+
+        <!-- Apple Touch Icon -->
+        <link rel="apple-touch-icon" sizes="180x180" href="../logo.jpg">
 </head>
 <body>
 

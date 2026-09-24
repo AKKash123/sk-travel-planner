@@ -52,6 +52,13 @@ $appConfig = [
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="extras.css">
 
+            <!-- Title icon / Favicon -->
+        <link rel="icon" type="image/png" sizes="32x32" href="logo.jpg">
+        <link rel="icon" type="image/png" sizes="16x16" href="logo.jpg">
+        <link rel="icon" type="image/x-icon" href="logo.jpg">
+
+        <!-- Apple Touch Icon -->
+        <link rel="apple-touch-icon" sizes="180x180" href="logo.jpg">
     <!-- Font Awesome loads without blocking first paint -->
     <link
         rel="stylesheet"
@@ -73,7 +80,7 @@ $appConfig = [
     <div class="container navbar-inner">
 
         <a href="index.php" class="navbar-brand">
-            <span class="brand-icon"><i class="fas fa-plane"></i></span>
+            <span class="brand-icon"> <img src="logo.jpg" alt="Logo"></span>
             <?= e(APP_NAME) ?>
         </a>
 

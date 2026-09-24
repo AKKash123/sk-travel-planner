@@ -4,7 +4,7 @@
 ?>
 <aside class="admin-sidebar">
     <div class="admin-sidebar-brand">
-        <span class="brand-icon"><i class="fas fa-plane"></i></span>
+        <span class="brand-icon"><img src="../logo.jpg" alt="Logo"></span>
         SK Travel
     </div>
     <ul class="admin-nav">

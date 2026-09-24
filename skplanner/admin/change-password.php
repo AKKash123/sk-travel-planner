@@ -150,6 +150,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['act'])) {
 <title>Admin Credential Manager — SK Travel Planner</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="icon" type="image/png" sizes="32x32" href="../logo.jpg">
+        <link rel="icon" type="image/png" sizes="16x16" href="../logo.jpg">
+        <link rel="icon" type="image/x-icon" href="../logo.jpg">
+
+        <!-- Apple Touch Icon -->
+        <link rel="apple-touch-icon" sizes="180x180" href="../logo.jpg">
 <style>
 :root{--primary:#0D7377;--primary-dark:#095558;--accent:#E8912D;--accent-dark:#C75B2A;--dark:#1B2838;--text:#2D2D2D;--text-muted:#6B7280;--light:#F7F3ED;--light-darker:#EDE7DB;--white:#FFF;--success:#2E8B57;--danger:#DC3545;--warning:#D4A017;--border:#D1CBC0;}
 *{margin:0;padding:0;box-sizing:border-box;}

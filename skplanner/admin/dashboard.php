@@ -86,6 +86,12 @@ if ($page > $totalPages) $page = $totalPages;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard — <?= e(APP_NAME) ?> Admin</title>
+     <link rel="icon" type="image/png" sizes="32x32" href="../logo.jpg">
+        <link rel="icon" type="image/png" sizes="16x16" href="../logo.jpg">
+        <link rel="icon" type="image/x-icon" href="../logo.jpg">
+
+        <!-- Apple Touch Icon -->
+        <link rel="apple-touch-icon" sizes="180x180" href="../logo.jpg">
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -472,7 +478,7 @@ if ($page > $totalPages) $page = $totalPages;
     <!-- ============ SIDEBAR ============ -->
     <aside class="admin-sidebar">
         <div class="admin-sidebar-brand">
-            <span class="brand-icon"><i class="fas fa-plane"></i></span> SK Travel
+            <span class="brand-icon"><img src="../logo.jpg" alt="Logo"></span> SK Travel
         </div>
         <ul class="admin-nav">
             <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>

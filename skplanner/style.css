@@ -285,6 +285,17 @@ img {
     font-weight: 700;
 
     color: var(--white);
+
+    /* Logo via pseudo-element */
+    position: relative;
+    padding-left: 48px;  /* space for the logo */
+}
+
+.navbar-brand img {
+    height: 36px;      /* adjust to match your design */
+    width: auto;       /* keeps aspect ratio */
+    border-radius: 4px; /* optional: slight rounding */
+    object-fit: contain;
 }
 
 .navbar-brand .brand-icon {
