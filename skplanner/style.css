@@ -107,8 +107,483 @@ img {
     padding: 0 20px;
 }
 
-.section {
-    padding: 80px 0;
+/* ============================================================
+   PREMIUM TOURISM HERO
+   Organic Curve • Warm Sunset • Cool Nature
+============================================================ */
+
+.hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+
+    min-height: 680px;
+    padding: 110px 0 170px;
+
+    display: flex;
+    align-items: center;
+
+    color: #ffffff;
+
+    background:
+        radial-gradient(
+            circle at 15% 25%,
+            rgba(255, 190, 111, 0.45),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 85% 30%,
+            rgba(82, 177, 166, 0.35),
+            transparent 32%
+        ),
+        linear-gradient(
+            125deg,
+            #174e54 0%,
+            #217477 42%,
+            #4b9b8c 68%,
+            #f0a263 120%
+        );
+
+    border-radius: 0 0 55% 18% / 0 0 14% 8%;
+
+    box-shadow:
+        0 25px 60px rgba(31, 83, 80, 0.16);
+}
+
+
+/* ============================================================
+   LARGE ORGANIC GLOW
+============================================================ */
+
+.hero::before {
+    content: "";
+
+    position: absolute;
+
+    width: 650px;
+    height: 650px;
+
+    top: -330px;
+    right: -180px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(255, 201, 126, 0.42),
+            rgba(255, 174, 101, 0.14) 45%,
+            transparent 72%
+        );
+
+    filter: blur(8px);
+
+    z-index: -1;
+}
+
+
+/* ============================================================
+   COOL DECORATIVE BUBBLE
+============================================================ */
+
+.hero::after {
+    content: "";
+
+    position: absolute;
+
+    width: 430px;
+    height: 430px;
+
+    left: -190px;
+    bottom: -230px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(114, 208, 193, 0.38),
+            rgba(60, 147, 145, 0.10) 55%,
+            transparent 73%
+        );
+
+    filter: blur(5px);
+
+    z-index: -1;
+}
+
+
+/* ============================================================
+   HERO CONTAINER
+============================================================ */
+
+.hero .container {
+    position: relative;
+    z-index: 5;
+}
+
+
+/* ============================================================
+   HERO CONTENT
+============================================================ */
+
+.hero-content {
+    max-width: 760px;
+}
+
+
+/* ============================================================
+   SMALL EYEBROW
+============================================================ */
+
+.hero-eyebrow {
+    display: inline-flex;
+
+    align-items: center;
+    gap: 8px;
+
+    padding: 8px 15px;
+
+    margin-bottom: 20px;
+
+    border: 1px solid rgba(255,255,255,0.28);
+
+    border-radius: 30px;
+
+    background: rgba(255,255,255,0.12);
+
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    color: #fff6e9;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+}
+
+.hero-eyebrow i {
+    color: #ffd18c;
+}
+
+
+/* ============================================================
+   HERO TITLE
+============================================================ */
+
+.hero h1 {
+    margin: 0 0 22px;
+
+    font-size: clamp(42px, 6vw, 76px);
+
+    line-height: 1.04;
+
+    font-weight: 850;
+
+    letter-spacing: -2.5px;
+
+    color: #ffffff;
+
+    text-shadow:
+        0 8px 25px rgba(0,0,0,0.12);
+}
+
+
+/* Highlight part of title */
+.hero h1 .highlight {
+    color: #ffd08a;
+
+    background:
+        linear-gradient(
+            90deg,
+            #ffd18c,
+            #ffb875,
+            #ffe1a9
+        );
+
+    -webkit-background-clip: text;
+    background-clip: text;
+
+    -webkit-text-fill-color: transparent;
+}
+
+
+/* ============================================================
+   HERO DESCRIPTION
+============================================================ */
+
+.hero p {
+    max-width: 650px;
+
+    margin-bottom: 32px;
+
+    color: rgba(255,255,255,0.86);
+
+    font-size: 17px;
+
+    line-height: 1.8;
+}
+
+
+/* ============================================================
+   HERO BUTTONS
+============================================================ */
+
+.hero-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    flex-wrap: wrap;
+}
+
+
+.hero .btn-primary {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    padding: 14px 25px;
+
+    border: none;
+    border-radius: 14px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f4a261,
+            #e98261
+        );
+
+    color: #ffffff;
+
+    font-weight: 750;
+
+    box-shadow:
+        0 12px 28px rgba(204, 102, 70, 0.28);
+
+    transition: all 0.25s ease;
+}
+
+.hero .btn-primary:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 17px 34px rgba(204, 102, 70, 0.35);
+}
+
+
+.hero .btn-outline {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    padding: 13px 24px;
+
+    border: 1px solid rgba(255,255,255,0.4);
+
+    border-radius: 14px;
+
+    background: rgba(255,255,255,0.10);
+
+    color: #ffffff;
+
+    backdrop-filter: blur(8px);
+
+    font-weight: 700;
+
+    transition: all 0.25s ease;
+}
+
+.hero .btn-outline:hover {
+    background: rgba(255,255,255,0.20);
+
+    border-color: rgba(255,255,255,0.7);
+
+    transform: translateY(-3px);
+}
+
+
+/* ============================================================
+   FLOATING TOURISM DECORATION
+============================================================ */
+
+.hero-decoration {
+    position: absolute;
+
+    border-radius: 50%;
+
+    pointer-events: none;
+
+    z-index: 1;
+}
+
+.hero-decoration.one {
+    width: 75px;
+    height: 75px;
+
+    top: 20%;
+    right: 13%;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255,211,142,0.8),
+            rgba(244,157,100,0.45)
+        );
+
+    box-shadow:
+        0 15px 40px rgba(255,177,105,0.22);
+
+    animation: heroFloat 6s ease-in-out infinite;
+}
+
+.hero-decoration.two {
+    width: 35px;
+    height: 35px;
+
+    top: 62%;
+    right: 28%;
+
+    background:
+        rgba(164, 231, 216, 0.45);
+
+    animation: heroFloat 5s ease-in-out infinite reverse;
+}
+
+
+/* ============================================================
+   FLOAT ANIMATION
+============================================================ */
+
+@keyframes heroFloat {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-14px);
+    }
+}
+
+
+/* ============================================================
+   EXTRA ORGANIC BOTTOM WAVE
+============================================================ */
+
+.hero-wave {
+    position: absolute;
+
+    left: -5%;
+    bottom: -1px;
+
+    width: 110%;
+    height: 120px;
+
+    background: #ffffff;
+
+    border-radius:
+        50% 50% 0 0 /
+        100% 100% 0 0;
+
+    z-index: 4;
+}
+
+
+/* ============================================================
+   ALTERNATIVE: DEEP ORGANIC WAVE
+============================================================ */
+
+.hero-wave.deep {
+    height: 150px;
+
+    border-radius:
+        65% 35% 0 0 /
+        100% 100% 0 0;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 768px) {
+
+    .hero {
+        min-height: 620px;
+
+        padding:
+            90px 0
+            140px;
+
+        border-radius:
+            0 0 35% 8% /
+            0 0 8% 4%;
+    }
+
+    .hero h1 {
+        font-size: clamp(38px, 11vw, 58px);
+
+        letter-spacing: -1.5px;
+    }
+
+    .hero p {
+        font-size: 15px;
+    }
+
+    .hero-wave {
+        height: 80px;
+    }
+
+    .hero-decoration.one {
+        right: 5%;
+        width: 55px;
+        height: 55px;
+    }
+}
+
+
+/* ============================================================
+   VERY SMALL DEVICES
+============================================================ */
+
+@media (max-width: 480px) {
+
+    .hero {
+        min-height: 600px;
+
+        padding-top: 80px;
+        padding-bottom: 120px;
+
+        border-radius:
+            0 0 25% 5% /
+            0 0 6% 3%;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .hero .btn-primary,
+    .hero .btn-outline {
+        width: 100%;
+    }
+
+    .hero-wave {
+        height: 60px;
+    }
 }
 
 
@@ -1367,11 +1842,16 @@ Hero scene
 }
 
 
-/* ============================================
-   FOOTER
-   ============================================ */
+ /* ============================================================
+    PREMIUM TOURISM FOOTER
+    Background preserved — only aesthetic enhancements
+ ============================================================ */
 
 .footer {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+
     background:
         linear-gradient(
             135deg,
@@ -1382,10 +1862,99 @@ Hero scene
 
     color: rgba(255,255,255,0.72);
 
-    padding: 60px 0 30px;
+    padding: 75px 0 30px;
 
     margin-top: 80px;
+
+    /* Soft organic top curve */
+    border-radius:
+        8% 8% 0 0 /
+        7% 7% 0 0;
+
+    box-shadow:
+        0 -20px 55px rgba(41, 33, 58, 0.12);
 }
+
+
+/* ============================================================
+   WARM TOURISM GLOW
+ ============================================================ */
+
+.footer::before {
+    content: "";
+
+    position: absolute;
+
+    width: 380px;
+    height: 380px;
+
+    top: -220px;
+    left: -100px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(245, 170, 105, 0.20),
+            rgba(245, 170, 105, 0.08) 45%,
+            transparent 72%
+        );
+
+    filter: blur(5px);
+
+    pointer-events: none;
+
+    z-index: -1;
+}
+
+
+/* ============================================================
+   COOL TEAL GLOW
+ ============================================================ */
+
+.footer::after {
+    content: "";
+
+    position: absolute;
+
+    width: 430px;
+    height: 430px;
+
+    right: -180px;
+    bottom: -280px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(73, 170, 157, 0.17),
+            rgba(73, 170, 157, 0.06) 48%,
+            transparent 72%
+        );
+
+    filter: blur(5px);
+
+    pointer-events: none;
+
+    z-index: -1;
+}
+
+
+/* ============================================================
+   FOOTER CONTAINER
+ ============================================================ */
+
+.footer .container {
+    position: relative;
+    z-index: 2;
+}
+
+
+/* ============================================================
+   FOOTER GRID
+ ============================================================ */
 
 .footer-grid {
     display: grid;
@@ -1393,36 +1962,404 @@ Hero scene
     grid-template-columns:
         2fr 1fr 1fr;
 
-    gap: 40px;
+    gap: 45px;
 
-    margin-bottom: 40px;
+    margin-bottom: 45px;
 }
 
+
+/* ============================================================
+   FOOTER BRAND / FIRST COLUMN
+ ============================================================ */
+
+.footer-grid > div:first-child {
+    padding-right: 35px;
+}
+
+
+/* Optional footer description */
+.footer p {
+    max-width: 500px;
+
+    color: rgba(255,255,255,0.60);
+
+    line-height: 1.8;
+
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   FOOTER HEADINGS
+ ============================================================ */
+
 .footer h4 {
+    position: relative;
+
     color: var(--white);
 
     font-size: 18px;
 
-    margin-bottom: 16px;
+    font-weight: 750;
+
+    margin-bottom: 20px;
+
+    letter-spacing: -0.2px;
 }
+
+
+/* Elegant heading underline */
+.footer h4::after {
+    content: "";
+
+    display: block;
+
+    width: 34px;
+    height: 3px;
+
+    margin-top: 9px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #f2a261,
+            #6ab6a8
+        );
+}
+
+
+/* ============================================================
+   FOOTER LINKS
+ ============================================================ */
 
 .footer a {
+    position: relative;
+
+    display: inline-block;
+
     color: rgba(255,255,255,0.62);
+
+    text-decoration: none;
+
+    transition:
+        color 0.25s ease,
+        transform 0.25s ease;
 }
+
+
+/* Link spacing */
+.footer li {
+    margin-bottom: 11px;
+}
+
+
+/* Animated tourism-style underline */
+.footer a::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    bottom: -3px;
+
+    width: 0;
+    height: 2px;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #f2a261,
+            #65b7aa
+        );
+
+    transition: width 0.25s ease;
+}
+
 
 .footer a:hover {
-    color: var(--accent-light);
+    color: #ffffff;
+
+    transform: translateX(4px);
 }
 
+
+.footer a:hover::after {
+    width: 100%;
+}
+
+
+/* ============================================================
+   SOCIAL ICONS
+ ============================================================ */
+
+.footer-social {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 22px;
+}
+
+
+.footer-social a {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    border-radius: 13px;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    border:
+        1px solid rgba(255,255,255,0.10);
+
+    color: rgba(255,255,255,0.75);
+
+    backdrop-filter: blur(8px);
+
+    transition:
+        all 0.3s ease;
+}
+
+
+.footer-social a::after {
+    display: none;
+}
+
+
+.footer-social a:hover {
+    transform:
+        translateY(-4px)
+        rotate(-2deg);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(242,162,97,0.85),
+            rgba(83,157,147,0.85)
+        );
+
+    border-color:
+        rgba(255,255,255,0.22);
+
+    color: #ffffff;
+
+    box-shadow:
+        0 10px 25px rgba(0,0,0,0.20);
+}
+
+
+/* ============================================================
+   FOOTER DESTINATION BADGE
+   Optional
+ ============================================================ */
+
+.footer-badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 7px 13px;
+
+    margin-bottom: 17px;
+
+    border-radius: 30px;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    border:
+        1px solid rgba(255,255,255,0.10);
+
+    color:
+        rgba(255,255,255,0.76);
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.4px;
+
+    backdrop-filter: blur(8px);
+}
+
+
+.footer-badge i {
+    color: #f3a267;
+}
+
+
+/* ============================================================
+   FOOTER BOTTOM
+ ============================================================ */
+
 .footer-bottom {
+    position: relative;
+
     border-top:
         1px solid rgba(255,255,255,0.12);
 
-    padding-top: 20px;
+    padding-top: 22px;
 
     text-align: center;
 
-    font-size: 14px;
+    font-size: 13px;
+
+    color: rgba(255,255,255,0.48);
+}
+
+
+/* Small decorative glow above divider */
+.footer-bottom::before {
+    content: "";
+
+    position: absolute;
+
+    top: -1px;
+    left: 50%;
+
+    width: 90px;
+    height: 2px;
+
+    transform: translateX(-50%);
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            #f0a064,
+            #67b6aa,
+            transparent
+        );
+}
+
+
+/* ============================================================
+   FOOTER CURVE DECORATION
+ ============================================================ */
+
+.footer-curve {
+    position: absolute;
+
+    top: -45px;
+    left: -5%;
+
+    width: 110%;
+    height: 80px;
+
+    background: transparent;
+
+    border-radius:
+        50% 50% 0 0 /
+        100% 100% 0 0;
+
+    pointer-events: none;
+}
+.footer-logo {
+    display: block;
+
+    width: 155px;
+    height: 65px;
+
+    object-fit: contain;
+
+    padding: 8px 14px;
+
+    margin-bottom: 20px;
+
+    background: #ffffff;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.20),
+        0 0 25px rgba(242, 162, 97, 0.10);
+
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+.footer-logo:hover {
+    transform: translateY(-4px);
+
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.25),
+        0 0 30px rgba(242, 162, 97, 0.18);
+}
+
+/* ============================================================
+   RESPONSIVE
+ ============================================================ */
+
+@media (max-width: 768px) {
+
+    .footer {
+        padding:
+            65px 0 25px;
+
+        margin-top: 60px;
+
+        border-radius:
+            6% 6% 0 0 /
+            4% 4% 0 0;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+
+        gap: 35px 25px;
+    }
+
+    .footer-grid > div:first-child {
+        grid-column: 1 / -1;
+
+        padding-right: 0;
+    }
+}
+
+
+@media (max-width: 480px) {
+
+    .footer {
+        padding:
+            55px 0 22px;
+
+        border-radius:
+            5% 5% 0 0 /
+            3% 3% 0 0;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+
+        gap: 28px;
+    }
+
+    .footer-grid > div:first-child {
+        grid-column: auto;
+    }
+
+    .footer h4 {
+        margin-bottom: 15px;
+    }
+
+    .footer-social {
+        margin-top: 18px;
+    }
 }
 
 
@@ -2134,111 +3071,548 @@ transform: translateY(-2px);
 }
 
 /* ============================================================
-FILTER BAR
+   VIBRANT TOURISM FILTER BAR
+   Premium • Modern • Travel UI
 ============================================================ */
 
 .filter-wrapper {
-background: var(--card-bg, #fff);
-border: 1px solid var(--border, #e5e7eb);
-border-radius: 20px;
-padding: 22px;
-margin-bottom: 34px;
-box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 248, 238, 0.98) 0%,
+            rgba(255, 239, 214, 0.96) 48%,
+            rgba(226, 246, 239, 0.98) 100%
+        );
+
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 24px;
+
+    padding: 26px;
+    margin-bottom: 34px;
+
+    box-shadow:
+        0 18px 45px rgba(38, 74, 67, 0.10),
+        0 5px 15px rgba(0, 0, 0, 0.04);
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
+
+/* Decorative tourism glow */
+.filter-wrapper::before {
+    content: "";
+    position: absolute;
+
+    width: 180px;
+    height: 180px;
+
+    top: -90px;
+    right: -50px;
+
+    background: rgba(241, 166, 82, 0.22);
+    border-radius: 50%;
+
+    filter: blur(10px);
+    pointer-events: none;
+}
+
+.filter-wrapper::after {
+    content: "";
+    position: absolute;
+
+    width: 140px;
+    height: 140px;
+
+    bottom: -90px;
+    left: -40px;
+
+    background: rgba(47, 111, 118, 0.14);
+    border-radius: 50%;
+
+    filter: blur(12px);
+    pointer-events: none;
+}
+
+
+/* ============================================================
+   FILTER TITLE
+============================================================ */
+
 .filter-title {
-display: flex;
-align-items: center;
-gap: 10px;
-font-size: 18px;
-font-weight: 700;
-margin-bottom: 18px;
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    font-size: 19px;
+    font-weight: 800;
+
+    color: #183f42;
+
+    margin-bottom: 20px;
+
+    letter-spacing: -0.2px;
 }
 
 .filter-title i {
-color: var(--primary, #2f6f76);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 38px;
+    height: 38px;
+
+    border-radius: 12px;
+
+    background: linear-gradient(
+        135deg,
+        #2f6f76,
+        #3f8c83
+    );
+
+    color: #ffffff;
+
+    font-size: 16px;
+
+    box-shadow:
+        0 8px 18px rgba(47, 111, 118, 0.25);
 }
+
+
+/* ============================================================
+   FILTER CONTROLS
+============================================================ */
 
 .filter-controls {
-display: grid;
-grid-template-columns: 1fr 1fr auto;
-gap: 14px;
-align-items: end;
+    position: relative;
+    z-index: 2;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+
+    gap: 16px;
+
+    align-items: end;
 }
 
+
+/* ============================================================
+   FILTER GROUP
+============================================================ */
+
 .filter-group {
-display: flex;
-flex-direction: column;
-gap: 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .filter-group label {
-font-size: 13px;
-font-weight: 700;
-color: var(--text-muted, #6b7280);
+    font-size: 12px;
+    font-weight: 800;
+
+    color: #53706e;
+
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
 }
+
+
+/* ============================================================
+   INPUT + SELECT
+============================================================ */
 
 .filter-group select,
 .filter-group input {
-width: 100%;
-height: 46px;
-border: 1px solid var(--border, #dfe3e8);
-border-radius: 11px;
-padding: 0 14px;
-background: var(--input-bg, #fff);
-color: var(--text, #222);
-outline: none;
-font: inherit;
+    width: 100%;
+    height: 48px;
+
+    border: 1px solid #dce7e2;
+    border-radius: 13px;
+
+    padding: 0 15px;
+
+    background: rgba(255, 255, 255, 0.88);
+    color: #24484a;
+
+    outline: none;
+
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.2s ease,
+        background 0.25s ease;
 }
 
+
+/* Select arrow */
+.filter-group select {
+    appearance: none;
+    -webkit-appearance: none;
+
+    cursor: pointer;
+
+    background-image:
+        linear-gradient(45deg, transparent 50%, #3f7775 50%),
+        linear-gradient(135deg, #3f7775 50%, transparent 50%);
+
+    background-position:
+        calc(100% - 18px) 20px,
+        calc(100% - 13px) 20px;
+
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+
+    padding-right: 40px;
+}
+
+
+/* Hover */
+.filter-group select:hover,
+.filter-group input:hover {
+    border-color: #a8cbc2;
+
+    background: #ffffff;
+
+    transform: translateY(-1px);
+}
+
+
+/* Focus */
 .filter-group select:focus,
 .filter-group input:focus {
-border-color: var(--primary, #2f6f76);
-box-shadow: 0 0 0 3px rgba(47, 111, 118, 0.10);
+    border-color: #2f7d78;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 4px rgba(47, 125, 120, 0.11),
+        0 8px 20px rgba(47, 111, 118, 0.08);
+
+    transform: translateY(-1px);
 }
+
+
+/* ============================================================
+   RESET BUTTON
+============================================================ */
 
 .filter-reset {
-height: 46px;
-border: 1px solid var(--border, #dfe3e8);
-border-radius: 11px;
-padding: 0 18px;
-background: transparent;
-color: var(--text, #222);
-cursor: pointer;
-font-weight: 600;
-transition: 0.2s ease;
+    position: relative;
+
+    height: 48px;
+
+    border: 1px solid #d5e1dd;
+    border-radius: 13px;
+
+    padding: 0 20px;
+
+    background: rgba(255, 255, 255, 0.65);
+    color: #31585a;
+
+    cursor: pointer;
+
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    transition:
+        all 0.25s ease;
+
+    white-space: nowrap;
 }
 
-.filter-reset:hover {
-background: var(--primary, #2f6f76);
-border-color: var(--primary, #2f6f76);
-color: #fff;
+
+/* Add reset icon if button contains icon */
+.filter-reset i {
+    font-size: 14px;
+    transition: transform 0.3s ease;
 }
+
+
+/* Hover */
+.filter-reset:hover {
+    background: linear-gradient(
+        135deg,
+        #2f6f76,
+        #3f8c83
+    );
+
+    border-color: #2f6f76;
+
+    color: #ffffff;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 22px rgba(47, 111, 118, 0.22);
+}
+
+.filter-reset:hover i {
+    transform: rotate(-45deg);
+}
+
+
+/* Active */
+.filter-reset:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+
+/* ============================================================
+   FILTER RESULT
+============================================================ */
 
 .filter-result {
-margin-top: 15px;
-font-size: 14px;
-color: var(--text-muted, #6b7280);
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    margin-top: 17px;
+
+    padding: 10px 14px;
+
+    width: fit-content;
+
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, 0.58);
+
+    font-size: 13px;
+    font-weight: 600;
+
+    color: #71807e;
 }
 
 .filter-result strong {
-color: var(--primary, #2f6f76);
+    color: #2f7775;
+
+    font-weight: 800;
 }
 
+
+/* ============================================================
+   NO RESULTS
+============================================================ */
+
 .filter-no-results {
-grid-column: 1 / -1;
-text-align: center;
-padding: 60px 20px;
+    grid-column: 1 / -1;
+
+    text-align: center;
+
+    padding: 65px 20px;
+
+    border-radius: 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.62),
+            rgba(240, 248, 244, 0.72)
+        );
 }
 
 .filter-no-results i {
-font-size: 48px;
-margin-bottom: 15px;
-color: var(--text-muted, #8b929a);
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 70px;
+    height: 70px;
+
+    margin-bottom: 18px;
+
+    border-radius: 50%;
+
+    background: #e6f2ed;
+
+    color: #6d918b;
+
+    font-size: 28px;
+
+    box-shadow:
+        0 10px 25px rgba(55, 104, 94, 0.10);
 }
 
 .filter-no-results h3 {
-margin-bottom: 8px;
+    margin-bottom: 8px;
+
+    color: #31585a;
+
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.filter-no-results p {
+    margin: 0;
+
+    color: #7b8987;
+
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   RESPONSIVE — TABLET
+============================================================ */
+
+@media (max-width: 900px) {
+
+    .filter-controls {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-reset {
+        width: 100%;
+    }
+}
+
+
+/* ============================================================
+   RESPONSIVE — MOBILE
+============================================================ */
+
+@media (max-width: 600px) {
+
+    .filter-wrapper {
+        padding: 20px;
+
+        border-radius: 20px;
+
+        margin-bottom: 24px;
+    }
+
+    .filter-title {
+        font-size: 17px;
+
+        margin-bottom: 17px;
+    }
+
+    .filter-title i {
+        width: 34px;
+        height: 34px;
+
+        border-radius: 10px;
+    }
+
+    .filter-controls {
+        grid-template-columns: 1fr;
+
+        gap: 13px;
+    }
+
+    .filter-group select,
+    .filter-group input,
+    .filter-reset {
+        height: 46px;
+    }
+
+    .filter-result {
+        width: 100%;
+
+        justify-content: center;
+
+        margin-top: 15px;
+    }
+
+    .filter-no-results {
+        padding: 45px 15px;
+    }
+}
+
+
+/* ============================================================
+   DARK MODE SUPPORT
+============================================================ */
+
+[data-theme="dark"] .filter-wrapper,
+.dark-mode .filter-wrapper {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(25, 49, 48, 0.96),
+            rgba(30, 57, 55, 0.94)
+        );
+
+    border-color: rgba(255, 255, 255, 0.08);
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .filter-title,
+.dark-mode .filter-title {
+    color: #e7f5ef;
+}
+
+[data-theme="dark"] .filter-group label,
+.dark-mode .filter-group label {
+    color: #a8c2bc;
+}
+
+[data-theme="dark"] .filter-group select,
+[data-theme="dark"] .filter-group input,
+.dark-mode .filter-group select,
+.dark-mode .filter-group input {
+    background: rgba(255, 255, 255, 0.07);
+
+    border-color: rgba(255, 255, 255, 0.12);
+
+    color: #eef8f5;
+}
+
+[data-theme="dark"] .filter-group select:hover,
+[data-theme="dark"] .filter-group input:hover,
+.dark-mode .filter-group select:hover,
+.dark-mode .filter-group input:hover {
+    background: rgba(255, 255, 255, 0.10);
+
+    border-color: rgba(123, 190, 177, 0.45);
+}
+
+[data-theme="dark"] .filter-reset,
+.dark-mode .filter-reset {
+    background: rgba(255, 255, 255, 0.06);
+
+    border-color: rgba(255, 255, 255, 0.12);
+
+    color: #dcece8;
+}
+
+[data-theme="dark"] .filter-result,
+.dark-mode .filter-result {
+    background: rgba(255, 255, 255, 0.06);
+
+    color: #9fb5b0;
+}
+
+[data-theme="dark"] .filter-no-results,
+.dark-mode .filter-no-results {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .filter-no-results h3,
+.dark-mode .filter-no-results h3 {
+    color: #e1f1ed;
 }
 
 /* ============================================================
@@ -3897,5 +5271,721 @@ textarea {
 
     .chatbot {
         bottom: max(76px, calc(76px + env(safe-area-inset-bottom)));
+    }
+}
+/* ===== BASE STYLES (Mobile-first) ===== */
+
+.floating-whatsapp {
+    position: fixed;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    z-index: 1000;
+    transition: bottom 0.3s ease;
+}
+
+.floating-whatsapp-text {
+    display: none;
+}
+
+.chatbot {
+    position: fixed;
+    right: 12px;
+    /* 12px bottom + 48px button height + 16px gap = 76px */
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    z-index: 999;
+    transition: bottom 0.3s ease;
+}
+
+.chatbot-window {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: calc(100vw - 24px);
+    max-width: 340px;
+    /* Full viewport minus button area + gaps */
+    height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+    max-height: 480px;
+    min-height: 280px;
+    overflow: hidden;
+}
+
+.chatbot-toggle {
+    width: 48px;
+    height: 48px;
+}
+
+/* ===== Small phones (≤ 360px) =====/ ===== */
+@media screen and (max-width: 360px) {
+    .floating-whatsapp {
+        right: 8px;
+        width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+
+    .chatbot {
+        right: 8px;
+        /* 8px + 44px + 12px gap = 64px */
+        bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .chatbot-window {
+        right: 0;
+        width: calc(100vw - 16px);
+        max-width: 300px;
+        height: calc(100dvh - 120px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+        max-height: 420px;
+        min-height: 240px;
+    }
+
+    .chatbot-toggle {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* ===== Standard phones (361px – 480px) ===== */
+
+
+/* ===== Large phones / Small tablets (481px – 768px) ===== */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+    .floating-whatsapp {
+        right: 14px;
+        width: 52px;
+        height: 52px;
+        min-height: 52px;
+    }
+
+    .chatbot {
+        right: 14px;
+        /* 14px + 52px + 18px gap = 84px */
+        bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .chatbot-window {
+        width: min(370px, calc(100vw - 28px));
+        height: calc(100dvh - 150px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+        max-height: 530px;
+        min-height: 320px;
+    }
+
+    .chatbot-toggle {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+/* ===== Tablets (769px – 1024px) ===== */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .floating-whatsapp {
+        right: 16px;
+        width: 54px;
+        height: 54px;
+        min-height: 54px;
+    }
+
+    .floating-whatsapp-text {
+        display: inline;
+    }
+
+    .chatbot {
+        right: 16px;
+        /* 16px + 54px + 20px gap = 90px */
+        bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .chatbot-window {
+        width: min(400px, calc(100vw - 32px));
+        height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+        max-height: 560px;
+        min-height: 360px;
+    }
+
+    .chatbot-toggle {
+        width: 54px;
+        height: 54px;
+    }
+}
+
+/* ===== Desktop (1025px+) ===== */
+@media screen and (min-width: 1025px) {
+    .floating-whatsapp {
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        min-height: 56px;
+    }
+
+    .floating-whatsapp-text {
+        display: inline;
+    }
+
+    .chatbot {
+        right: 20px;
+        /* 20px + 56px + 20px gap = 96px */
+        bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .chatbot-window {
+        width: min(420px, calc(100vw - 40px));
+        height: calc(100dvh - 170px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+        max-height: 600px;
+        min-height: 400px;
+    }
+
+    .chatbot-toggle {
+        width: 56px;
+        height: 56px;
+    }
+}
+
+/* ===== Landscape phones (height ≤ 500px in landscape) ===== */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    .floating-whatsapp {
+        right: 8px;
+        width: 40px;
+        height: 40px;
+        min-height: 40px;
+    }
+
+    .chatbot {
+        right: 8px;
+        /* 8px + 40px + 10px gap = 58px */
+        bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .chatbot-window {
+        width: min(320px, calc(100vw - 16px));
+        /* Use most of the short landscape height */
+        height: calc(100dvh - 100px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+        max-height: calc(100dvh - 100px);
+        min-height: 200px;
+    }
+
+    .chatbot-toggle {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* ===== Notched devices (iPhone X+, dynamic island) ===== */
+@supports (padding: env(safe-area-inset-bottom)) {
+    .floating-whatsapp {
+        bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .chatbot {
+        bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+}
+
+/* ===== When chatbot is OPEN — push WhatsApp button up ===== */
+.chatbot.open ~ .floating-whatsapp,
+body.chatbot-open .floating-whatsapp {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px) + 52px + 8px);
+    /* positions it above the chatbot toggle */
+}
+/* ============================================================
+   BASE — All devices (Mobile-first)
+   ============================================================ */
+.floating-whatsapp {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+.floating-whatsapp-text {
+    display: none;
+}
+
+.chatbot {
+    position: fixed;
+    right: 12px;
+    bottom: 76px;
+    z-index: 999;
+}
+
+.chatbot-window {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: calc(100vw - 24px);
+    max-width: 310px;
+
+    /* Fixed height — calculated to never overlap */
+    height: calc(100vh - 136px);
+    max-height: 480px;
+    min-height: 260px;
+
+    overflow: hidden;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+.chatbot-toggle {
+    width: 48px;
+    height: 48px;
+}
+
+/* ============================================================
+   iPhone SE & Small phones (≤ 375px width, ≤ 667px height)
+   ============================================================ */
+@media screen and (max-width: 375px) {
+    .floating-whatsapp {
+        right: 10px;
+        bottom: 10px;
+        width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+
+    .chatbot {
+        right: 10px;
+        bottom: 66px;   /* 10 + 44 + 12 gap */
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 20px);
+        max-width: 300px;
+
+        /* 667 - 66 - 44 - 10 = 547 → capped at 440 for small screen */
+        height: calc(100vh - 120px);
+        max-height: 440px;
+        min-height: 240px;
+    }
+
+    .chatbot-toggle {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* ============================================================
+   Standard phones (376px – 480px) — iPhone SE landscape, 
+   iPhone 6/7/8, iPhone X, etc.
+   ============================================================ */
+@media screen and (min-width: 376px) and (max-width: 480px) {
+    .floating-whatsapp {
+        right: 12px;
+        bottom: 12px;
+        width: 48px;
+        height: 48px;
+        min-height: 48px;
+    }
+
+    .chatbot {
+        right: 12px;
+        bottom: 76px;   /* 12 + 48 + 16 gap */
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 24px);
+        max-width: 340px;
+
+        /* For 667px height: 667 - 76 - 48 - 12 = 531 → capped at 480 */
+        height: calc(100vh - 136px);
+        max-height: 480px;
+        min-height: 280px;
+    }
+
+    .chatbot-toggle {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* ============================================================
+   Large phones / Small tablets (481px – 768px)
+   ============================================================ */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+    .floating-whatsapp {
+        right: 14px;
+        bottom: 14px;
+        width: 52px;
+        height: 52px;
+        min-height: 52px;
+    }
+
+    .chatbot {
+        right: 14px;
+        bottom: 84px;   /* 14 + 52 + 18 gap */
+    }
+
+    .chatbot-window {
+        width: min(370px, calc(100vw - 28px));
+        max-width: 370px;
+
+        height: calc(100vh - 150px);
+        max-height: 520px;
+        min-height: 300px;
+    }
+
+    .chatbot-toggle {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+/* ============================================================
+   Tablets (769px – 1024px)
+   ============================================================ */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .floating-whatsapp {
+        right: 16px;
+        bottom: 16px;
+        width: 54px;
+        height: 54px;
+        min-height: 54px;
+    }
+
+    .floating-whatsapp-text {
+        display: inline;
+    }
+
+    .chatbot {
+        right: 16px;
+        bottom: 90px;   /* 16 + 54 + 20 gap */
+    }
+
+    .chatbot-window {
+        width: min(400px, calc(100vw - 32px));
+        max-width: 400px;
+
+        height: calc(100vh - 160px);
+        max-height: 560px;
+        min-height: 340px;
+    }
+
+    .chatbot-toggle {
+        width: 54px;
+        height: 54px;
+    }
+}
+
+/* ============================================================
+   Desktop (1025px+)
+   ============================================================ */
+@media screen and (min-width: 1025px) {
+    .floating-whatsapp {
+        right: 20px;
+        bottom: 20px;
+        width: 56px;
+        height: 56px;
+        min-height: 56px;
+    }
+
+    .floating-whatsapp-text {
+        display: inline;
+    }
+
+    .chatbot {
+        right: 20px;
+        bottom: 96px;   /* 20 + 56 + 20 gap */
+    }
+
+    .chatbot-window {
+        width: min(420px, calc(100vw - 40px));
+        max-width: 420px;
+
+        height: calc(100vh - 170px);
+        max-height: 600px;
+        min-height: 400px;
+    }
+
+    .chatbot-toggle {
+        width: 56px;
+        height: 56px;
+    }
+}
+
+/* ============================================================
+   LANDSCAPE — Short height screens (all widths)
+   ============================================================ */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    .floating-whatsapp {
+        right: 8px;
+        bottom: 8px;
+        width: 40px;
+        height: 40px;
+        min-height: 40px;
+    }
+
+    .chatbot {
+        right: 8px;
+        bottom: 58px;   /* 8 + 40 + 10 gap */
+    }
+
+    .chatbot-window {
+        width: min(320px, calc(100vw - 16px));
+        max-width: 320px;
+
+        height: calc(100vh - 98px);
+        max-height: calc(100vh - 98px);
+        min-height: 180px;
+    }
+
+    .chatbot-toggle {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* ============================================================
+   iOS Safe Area — Notched iPhones (X, 11, 12, 13, 14, 15)
+   Overrides bottom positions when safe-area is available
+   ============================================================ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+
+    /* Base */
+    .floating-whatsapp {
+        bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+    .chatbot {
+        bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+    .chatbot-window {
+        height: calc(100vh - 136px - env(safe-area-inset-bottom));
+    }
+
+    /* Small phones */
+    @media screen and (max-width: 375px) {
+        .floating-whatsapp {
+            bottom: calc(10px + env(safe-area-inset-bottom));
+        }
+        .chatbot {
+            bottom: calc(66px + env(safe-area-inset-bottom));
+        }
+        .chatbot-window {
+            height: calc(100vh - 120px - env(safe-area-inset-bottom));
+        }
+    }
+
+    /* Standard phones */
+    @media screen and (min-width: 376px) and (max-width: 480px) {
+        .floating-whatsapp {
+            bottom: calc(12px + env(safe-area-inset-bottom));
+        }
+        .chatbot {
+            bottom: calc(76px + env(safe-area-inset-bottom));
+        }
+        .chatbot-window {
+            height: calc(100vh - 136px - env(safe-area-inset-bottom));
+        }
+    }
+
+    /* Large phones / Small tablets */
+    @media screen and (min-width: 481px) and (max-width: 768px) {
+        .floating-whatsapp {
+            bottom: calc(14px + env(safe-area-inset-bottom));
+        }
+        .chatbot {
+            bottom: calc(84px + env(safe-area-inset-bottom));
+        }
+        .chatbot-window {
+            height: calc(100vh - 150px - env(safe-area-inset-bottom));
+        }
+    }
+
+    /* Tablets */
+    @media screen and (min-width: 769px) and (max-width: 1024px) {
+        .floating-whatsapp {
+            bottom: calc(16px + env(safe-area-inset-bottom));
+        }
+        .chatbot {
+            bottom: calc(90px + env(safe-area-inset-bottom));
+        }
+        .chatbot-window {
+            height: calc(100vh - 160px - env(safe-area-inset-bottom));
+        }
+    }
+
+    /* Desktop */
+    @media screen and (min-width: 1025px) {
+        .floating-whatsapp {
+            bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+        .chatbot {
+            bottom: calc(96px + env(safe-area-inset-bottom));
+        }
+        .chatbot-window {
+            height: calc(100vh - 170px - env(safe-area-inset-bottom));
+        }
+    }
+
+    /* Landscape short */
+    @media screen and (orientation: landscape) and (max-height: 500px) {
+        .floating-whatsapp {
+            bottom: calc(8px + env(safe-area-inset-bottom));
+        }
+        .chatbot {
+            bottom: calc(58px + env(safe-area-inset-bottom));
+        }
+        .chatbot-window {
+            height: calc(100vh - 98px - env(safe-area-inset-bottom));
+        }
+    }
+}
+
+/* ============================================================
+   Chatbot OPEN — Push WhatsApp button above chatbot
+   ============================================================ */
+body.chatbot-open .floating-whatsapp {
+    bottom: 140px;
+}
+
+/* ============================================================
+   iPhone SE — 375 × 667 (Portrait)
+   ============================================================ */
+@media screen and (width: 375px) and (height: 667px) {
+
+    .floating-whatsapp {
+        right: 10px;
+        bottom: 10px;
+        width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+
+    .floating-whatsapp-text {
+        display: none;
+    }
+
+    .chatbot {
+        right: 10px;
+        bottom: 66px; /* 10 + 44 + 12 gap */
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 20px);
+        max-width: 345px;
+        height: 440px;       /* FIXED — fits perfectly */
+        max-height: 440px;   /* FIXED — no overflow */
+        min-height: 440px;   /* FIXED — no shrink */
+    }
+
+    .chatbot-toggle {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* iPhone SE — Landscape (667 × 375) */
+@media screen and (width: 667px) and (height: 375px) {
+
+    .floating-whatsapp {
+        right: 8px;
+        bottom: 8px;
+        width: 36px;
+        height: 36px;
+        min-height: 36px;
+    }
+
+    .floating-whatsapp-text {
+        display: none;
+    }
+
+    .chatbot {
+        right: 8px;
+        bottom: 52px; /* 8 + 36 + 8 gap */
+    }
+
+    .chatbot-window {
+        width: calc(100vw - 16px);
+        max-width: 310px;
+        height: 260px;       /* FIXED — short landscape */
+        max-height: 260px;
+        min-height: 260px;
+    }
+
+    .chatbot-toggle {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* iPhone SE with iOS safe-area (home indicator) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+
+    @media screen and (width: 375px) and (height: 667px) {
+        .floating-whatsapp {
+            bottom: calc(10px + env(safe-area-inset-bottom));
+        }
+
+        .chatbot {
+            bottom: calc(66px + env(safe-area-inset-bottom));
+        }
+
+        .chatbot-window {
+            height: calc(440px - env(safe-area-inset-bottom));
+            max-height: calc(440px - env(safe-area-inset-bottom));
+            min-height: calc(440px - env(safe-area-inset-bottom));
+        }
+    }
+}
+/* ============================================================
+   RESPONSIVE — Landscape Short Screens (any width, height ≤ 500px)
+   ============================================================ */
+
+@media screen and (orientation: landscape) and (max-height: 500px) {
+
+    .floating-whatsapp {
+        right: 8px;
+        bottom: 8px;
+        width: 42px;
+        height: 42px;
+    }
+
+    .floating-whatsapp i {
+        font-size: 20px;
+    }
+
+    .chatbot {
+        right: 8px;
+        /* 8 + 42 + 8 = 58px */
+        bottom: 58px;
+    }
+
+    .chatbot-toggle {
+        width: 44px;
+        height: 44px;
+        font-size: 17px;
+    }
+
+    .chatbot-window {
+        /* 44 + 8 = 52px above chatbot position */
+        bottom: 52px;
+        width: min(340px, calc(100vw - 16px));
+        max-width: 340px;
+
+        /*
+         * Window at: 58px + 52px = 110px from viewport bottom
+         * Available = 100vh - 110px
+         */
+        height: calc(100vh - 110px);
+        max-height: calc(100vh - 110px);
+        min-height: 180px;
+
+        border-radius: 14px;
+    }
+
+    .chatbot-notification {
+        width: 16px;
+        height: 16px;
+        font-size: 9px;
     }
 }

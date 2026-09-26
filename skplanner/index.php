@@ -448,7 +448,7 @@ $appConfig = [
 
             <div>
                 <h4>
-                    <i class="fas fa-plane"></i>
+                <img class="footer-logo" src="logo.jpg" alt="Logo">
                     <?= e(APP_NAME) ?>
                 </h4>
                 <p style="max-width:320px;">

@@ -811,7 +811,7 @@ if (!$itin) {
     <div class="container">
         <div class="footer-grid">
             <div>
-                <h4><i class="fas fa-plane"></i> <?= e(APP_NAME) ?></h4>
+                <h4><img class="footer-logo" src="logo.jpg" alt="Logo"><?= e(APP_NAME) ?></h4>
                 <p style="max-width:320px;">Your trusted partner for unforgettable travel experiences. Expert-crafted itineraries for destinations across the globe.</p>
             </div>
             <div>
