@@ -3,7 +3,7 @@
 
 > A complete, secure PHP web application for creating and managing travel itineraries with an admin panel, image uploads, PDF generation, and database backup — built with XSS and SQL injection protection at every layer.
 
-
+# dummy useername-admin password-admin123 
 
 ## 📌 Table of Contents
 
