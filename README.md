@@ -1,9 +1,9 @@
-```markdown
+
 # ✈️ SK Travel Planner
 
 > A complete, secure PHP web application for creating and managing travel itineraries with an admin panel, image uploads, PDF generation, and database backup — built with XSS and SQL injection protection at every layer.
 
----
+
 
 ## 📌 Table of Contents
 
@@ -20,13 +20,13 @@
 - [Troubleshooting](#-troubleshooting)
 - [License](#-license)
 
----
+
 
 ## 🌍 Overview
 
 SK Travel Planner allows travel agencies and independent planners to **create, edit, delete, and publish** curated travel itineraries. Visitors browse active itineraries on the public-facing site, view full day-wise details, and download a professionally formatted PDF. Administrators manage everything through a secure dashboard.
 
----
+
 
 ## ✨ Features
 
@@ -74,11 +74,10 @@ SK Travel Planner allows travel agencies and independent planners to **create, e
 | Fonts | Playfair Display + Source Sans 3 (Google Fonts) |
 | Authentication | bcrypt via `password_hash()` / `password_verify()` |
 
----
 
 ## 📁 Project Structure
 
-```
+
 sk-travel-planner/
 │
 ├── config.php                  # DB connection, session, all helper functions
@@ -109,9 +108,9 @@ sk-travel-planner/
     ├── backup.php              # Database backup & download
     ├── logout.php              # Session destroy & redirect
     └── sidebar-fragment.php    # Shared sidebar navigation
-```
 
----
+
+
 
 ## 🚀 Installation
 
