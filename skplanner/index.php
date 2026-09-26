@@ -48,17 +48,23 @@ $appConfig = [
     <title><?= e(APP_NAME) ?> — Discover Your Next Adventure</title>
 
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
+    <link
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+    >
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="extra.css">
 
-            <!-- Title icon / Favicon -->
-        <link rel="icon" type="image/png" sizes="32x32" href="logo.jpg">
-        <link rel="icon" type="image/png" sizes="16x16" href="logo.jpg">
-        <link rel="icon" type="image/x-icon" href="logo.jpg">
+                <!-- Favicons -->
+        <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+        <link rel="icon" href="assets/icons/favicon.ico">
 
         <!-- Apple Touch Icon -->
-        <link rel="apple-touch-icon" sizes="180x180" href="logo.jpg">
+        <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
     <!-- Font Awesome loads without blocking first paint -->
     <link
         rel="stylesheet"
@@ -428,7 +434,7 @@ $appConfig = [
                 class="btn btn-whatsapp btn-lg"
             >
                 <i class="fab fa-whatsapp"></i>
-                Chat on WhatsApp
+                WhatsApp
             </a>
 
         </div>
@@ -448,7 +454,7 @@ $appConfig = [
 
             <div>
                 <h4>
-                    <i class="fas fa-plane"></i>
+                <img class="footer-logo" src="logo.jpg" alt="Logo">
                     <?= e(APP_NAME) ?>
                 </h4>
                 <p style="max-width:320px;">
@@ -501,10 +507,9 @@ $appConfig = [
     target="_blank"
     rel="noopener"
     class="floating-whatsapp"
-    aria-label="Chat with us on WhatsApp"
+    aria-label="Chat on WhatsApp"
 >
     <i class="fab fa-whatsapp"></i>
-    <span class="floating-whatsapp-text">Chat with us</span>
 </a>
 
 <!-- =========================================================

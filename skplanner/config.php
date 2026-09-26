@@ -1,27 +1,24 @@
 <?php
-
-// ============================================
+// ============================================================
 // SK Travel Planner - Configuration
-// ============================================
+// Production-safe configuration
+// ============================================================
 
-// ============================================
+declare(strict_types=1);
+
+
+// ============================================================
 // ERROR REPORTING
-// ============================================
+// ============================================================
 
-// Development:
-// error_reporting(E_ALL);
-// ini_set('display_errors', 1);
-
-// Production:
-// Do not display PHP errors to visitors.
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
 
-// ============================================
+// ============================================================
 // DATABASE CONFIGURATION
-// ============================================
+// ============================================================
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'sk_travel_planner');
@@ -29,40 +26,43 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 
 
-// ============================================
+// ============================================================
 // APP CONFIGURATION
-// ============================================
+// ============================================================
+//
+// LOCAL:
+// http://localhost/skplanner
+//
+// PRODUCTION example:
+// https://yourdomain.com
+// ============================================================
 
 define('APP_NAME', 'SK Travel Planner');
 
-// LOCAL DEVELOPMENT
 define(
     'APP_URL',
     'http://localhost/skplanner'
 );
 
-// LIVE SERVER EXAMPLE:
-// define('APP_URL', 'https://yourdomain.com/sk-travel-planner');
 
-
-// ============================================
+// ============================================================
 // UPLOAD CONFIGURATION
-// ============================================
+// ============================================================
 
 define(
     'UPLOAD_DIR',
-    __DIR__ . '/uploads/'
+    __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR
 );
 
 define(
     'UPLOAD_URL',
-    APP_URL . '/uploads/'
+    rtrim(APP_URL, '/') . '/uploads/'
 );
 
 define(
     'MAX_FILE_SIZE',
     5 * 1024 * 1024
-); // 5 MB
+);
 
 define(
     'ALLOWED_EXT',
@@ -76,21 +76,57 @@ define(
 );
 
 
-// ============================================
+// ============================================================
+// CREATE UPLOAD DIRECTORY IF MISSING
+// ============================================================
+//
+// This prevents:
+// "uploads/ directory referenced by config.php
+// doesn't exist on disk"
+// ============================================================
+
+if (!is_dir(UPLOAD_DIR)) {
+
+    if (!@mkdir(UPLOAD_DIR, 0755, true)) {
+
+        error_log(
+            'SK Travel Planner - Unable to create upload directory: ' .
+            UPLOAD_DIR
+        );
+    }
+}
+
+
+// ============================================================
 // SESSION CONFIGURATION
-// ============================================
+// ============================================================
 
 if (session_status() === PHP_SESSION_NONE) {
 
-    ini_set('session.cookie_httponly', '1');
-    ini_set('session.use_strict_mode', '1');
-
-    // HTTPS detection
-    $isHttps = (
-        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        ||
-        (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+    ini_set(
+        'session.cookie_httponly',
+        '1'
     );
+
+    ini_set(
+        'session.use_strict_mode',
+        '1'
+    );
+
+    // --------------------------------------------------------
+    // HTTPS Detection
+    // --------------------------------------------------------
+
+    $isHttps =
+        (
+            !empty($_SERVER['HTTPS']) &&
+            strtolower((string) $_SERVER['HTTPS']) !== 'off'
+        )
+        ||
+        (
+            isset($_SERVER['SERVER_PORT']) &&
+            (int) $_SERVER['SERVER_PORT'] === 443
+        );
 
     ini_set(
         'session.cookie_secure',
@@ -100,10 +136,25 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/error-handler.php';
-// ============================================
+
+// ============================================================
+// GLOBAL ERROR HANDLER
+// ============================================================
+//
+// IMPORTANT:
+// error-handler.php must NOT require config.php itself.
+// ============================================================
+
+$errorHandlerFile = __DIR__ . '/error-handler.php';
+
+if (is_file($errorHandlerFile)) {
+    require_once $errorHandlerFile;
+}
+
+
+// ============================================================
 // SECURITY HEADERS
-// ============================================
+// ============================================================
 
 if (!headers_sent()) {
 
@@ -118,20 +169,19 @@ if (!headers_sent()) {
     header(
         'Referrer-Policy: strict-origin-when-cross-origin'
     );
-
 }
 
 
-// ============================================
+// ============================================================
 // PDO DATABASE CONNECTION
-// ============================================
+// ============================================================
 
 try {
 
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST .
-        ";dbname=" . DB_NAME .
-        ";charset=utf8mb4",
+        'mysql:host=' . DB_HOST .
+        ';dbname=' . DB_NAME .
+        ';charset=utf8mb4',
 
         DB_USER,
         DB_PASS,
@@ -144,35 +194,107 @@ try {
                 PDO::FETCH_ASSOC,
 
             PDO::ATTR_EMULATE_PREPARES =>
-                false
+                false,
+
+            PDO::ATTR_TIMEOUT =>
+                5
         ]
     );
 
 } catch (PDOException $e) {
 
-    // Do not expose database credentials/errors
-    // to visitors on production.
+    // --------------------------------------------------------
+    // Log actual database error privately
+    // --------------------------------------------------------
 
     error_log(
-        'Database connection failed: ' .
+        'SK Travel Planner - Database connection failed: ' .
         $e->getMessage()
     );
 
-    die(
-        'Database connection failed. Please try again later.'
-    );
+
+    // --------------------------------------------------------
+    // HTTP 500
+    // --------------------------------------------------------
+
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+
+
+    // --------------------------------------------------------
+    // Load branded 500 page
+    // --------------------------------------------------------
+
+    $error500File = __DIR__ . '/error-500.php';
+
+    if (is_file($error500File)) {
+
+        require $error500File;
+
+    } else {
+
+        // ----------------------------------------------------
+        // Emergency fallback
+        // ----------------------------------------------------
+
+        if (!headers_sent()) {
+            header(
+                'Content-Type: text/html; charset=UTF-8'
+            );
+        }
+
+        echo '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Server Error — SK Travel Planner</title>
+</head>
+
+<body style="
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-family:Arial,sans-serif;
+    background:#F7F3ED;
+    color:#1B2838;
+">
+
+<div>
+
+    <div style="
+        font-size:96px;
+        font-weight:900;
+        color:#E8912D;
+    ">500</div>
+
+    <h1>Server Error</h1>
+
+    <p>
+        Something went wrong.
+        Please try again later.
+    </p>
+
+</div>
+
+</body>
+</html>';
+    }
+
+    exit;
 }
 
 
-// ============================================
+// ============================================================
 // SECURITY HELPER FUNCTIONS
-// ============================================
+// ============================================================
 
 /**
  * Escape output for HTML.
- *
- * Primary XSS protection when displaying
- * database/user supplied content.
  */
 function e($string): string
 {
@@ -197,9 +319,9 @@ function clean($string): string
 }
 
 
-// ============================================
+// ============================================================
 // CSRF PROTECTION
-// ============================================
+// ============================================================
 
 /**
  * Generate CSRF token.
@@ -252,9 +374,9 @@ function csrfVerify($token): bool
 }
 
 
-// ============================================
+// ============================================================
 // ADMIN AUTHENTICATION
-// ============================================
+// ============================================================
 
 /**
  * Check if admin is logged in.
@@ -277,7 +399,7 @@ function requireAdmin(): void
 
         header(
             'Location: ' .
-            APP_URL .
+            rtrim(APP_URL, '/') .
             '/admin/index.php'
         );
 
@@ -286,9 +408,9 @@ function requireAdmin(): void
 }
 
 
-// ============================================
+// ============================================================
 // REDIRECT / FLASH MESSAGE
-// ============================================
+// ============================================================
 
 /**
  * Redirect with optional flash message.
@@ -340,41 +462,49 @@ function flashMsg(): string
         );
 
         return
-            "<div class=\"alert alert-{$type}\">" .
+            '<div class="alert alert-' .
+            $type .
+            '">' .
             $msg .
-            "</div>";
+            '</div>';
     }
 
     return '';
 }
 
 
-// ============================================
+// ============================================================
 // IMAGE UPLOAD
-// ============================================
+// ============================================================
 
 /**
  * Upload and validate an image.
  *
- * Uses getimagesize() instead of finfo_open().
- *
  * Returns:
- *     new filename on success
- *     old filename if no new file uploaded
- *     false on failure
+ * - new filename on success
+ * - old filename if no new file uploaded
+ * - false on failure
  */
 function uploadImage(
     string $fileInput,
     ?string $oldImage = null
 ) {
 
+    // --------------------------------------------------------
     // No file selected
+    // --------------------------------------------------------
+
     if (
         !isset($_FILES[$fileInput]) ||
+        !isset($_FILES[$fileInput]['error'])
+    ) {
+        return $oldImage;
+    }
+
+    if (
         $_FILES[$fileInput]['error'] ===
         UPLOAD_ERR_NO_FILE
     ) {
-
         return $oldImage;
     }
 
@@ -382,62 +512,62 @@ function uploadImage(
     $file = $_FILES[$fileInput];
 
 
-    // ========================================
-    // UPLOAD ERROR CHECK
-    // ========================================
+    // --------------------------------------------------------
+    // Upload error
+    // --------------------------------------------------------
 
     if (
         $file['error'] !== UPLOAD_ERR_OK
     ) {
+        error_log(
+            'SK Travel Planner - Image upload error: ' .
+            $file['error']
+        );
 
         return false;
     }
 
 
-    // ========================================
-    // FILE SIZE CHECK
-    // ========================================
+    // --------------------------------------------------------
+    // File size
+    // --------------------------------------------------------
 
     if (
         $file['size'] <= 0 ||
         $file['size'] > MAX_FILE_SIZE
     ) {
-
         return false;
     }
 
 
-    // ========================================
-    // TEMP FILE CHECK
-    // ========================================
+    // --------------------------------------------------------
+    // Temporary file
+    // --------------------------------------------------------
 
     if (
-        !is_uploaded_file(
-            $file['tmp_name']
-        )
+        empty($file['tmp_name']) ||
+        !is_uploaded_file($file['tmp_name'])
     ) {
-
         return false;
     }
 
 
-    // ========================================
-    // IMAGE VALIDATION
-    // ========================================
+    // --------------------------------------------------------
+    // Image validation
+    // --------------------------------------------------------
 
     $imageInfo = @getimagesize(
         $file['tmp_name']
     );
 
     if ($imageInfo === false) {
-
         return false;
     }
 
 
-    // ========================================
-    // MIME TYPE CHECK
-    // ========================================
+    // --------------------------------------------------------
+    // MIME validation
+    // --------------------------------------------------------
 
     $allowedMimes = [
         'image/jpeg',
@@ -446,7 +576,8 @@ function uploadImage(
         'image/webp'
     ];
 
-    $mime = $imageInfo['mime'] ?? '';
+    $mime =
+        $imageInfo['mime'] ?? '';
 
     if (
         !in_array(
@@ -455,16 +586,15 @@ function uploadImage(
             true
         )
     ) {
-
         return false;
     }
 
 
-    // ========================================
-    // EXTENSION CHECK
-    // ========================================
+    // --------------------------------------------------------
+    // Extension validation
+    // --------------------------------------------------------
 
-    $ext = strtolower(
+    $originalExt = strtolower(
         pathinfo(
             $file['name'],
             PATHINFO_EXTENSION
@@ -473,30 +603,24 @@ function uploadImage(
 
     if (
         !in_array(
-            $ext,
+            $originalExt,
             ALLOWED_EXT,
             true
         )
     ) {
-
         return false;
     }
 
 
-    // ========================================
-    // NORMALIZE EXTENSION
-    // ========================================
-
-    // Do not trust the user's original
-    // extension.
+    // --------------------------------------------------------
+    // Normalize extension based on actual MIME
+    // --------------------------------------------------------
 
     $extensionMap = [
-
         'image/jpeg' => 'jpg',
         'image/png'  => 'png',
         'image/gif'  => 'gif',
         'image/webp' => 'webp'
-
     ];
 
     $ext =
@@ -504,9 +628,9 @@ function uploadImage(
         ?? 'jpg';
 
 
-    // ========================================
-    // GENERATE RANDOM FILENAME
-    // ========================================
+    // --------------------------------------------------------
+    // Generate random filename
+    // --------------------------------------------------------
 
     try {
 
@@ -515,7 +639,12 @@ function uploadImage(
                 random_bytes(16)
             );
 
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
+
+        error_log(
+            'SK Travel Planner - Failed to generate upload filename: ' .
+            $e->getMessage()
+        );
 
         return false;
     }
@@ -528,42 +657,50 @@ function uploadImage(
         $ext;
 
 
-    // ========================================
-    // CREATE UPLOAD DIRECTORY
-    // ========================================
+    // --------------------------------------------------------
+    // Create upload directory
+    // --------------------------------------------------------
 
-    if (
-        !is_dir(UPLOAD_DIR)
-    ) {
+    if (!is_dir(UPLOAD_DIR)) {
 
         if (
-            !mkdir(
+            !@mkdir(
                 UPLOAD_DIR,
                 0755,
                 true
             )
         ) {
 
+            error_log(
+                'SK Travel Planner - Failed to create upload directory: ' .
+                UPLOAD_DIR
+            );
+
             return false;
         }
     }
 
 
-    // ========================================
-    // DIRECTORY WRITE CHECK
-    // ========================================
+    // --------------------------------------------------------
+    // Directory write check
+    // --------------------------------------------------------
 
     if (
         !is_writable(UPLOAD_DIR)
     ) {
 
+        error_log(
+            'SK Travel Planner - Upload directory is not writable: ' .
+            UPLOAD_DIR
+        );
+
         return false;
     }
 
 
-    // ========================================
-    // MOVE UPLOADED FILE
-    // ========================================
+    // --------------------------------------------------------
+    // Move uploaded file
+    // --------------------------------------------------------
 
     $destination =
         UPLOAD_DIR .
@@ -576,13 +713,17 @@ function uploadImage(
         )
     ) {
 
+        error_log(
+            'SK Travel Planner - Failed to move uploaded file.'
+        );
+
         return false;
     }
 
 
-    // ========================================
-    // SET SAFE FILE PERMISSIONS
-    // ========================================
+    // --------------------------------------------------------
+    // Safe file permissions
+    // --------------------------------------------------------
 
     @chmod(
         $destination,
@@ -590,20 +731,14 @@ function uploadImage(
     );
 
 
-    // ========================================
-    // DELETE OLD IMAGE
-    // ========================================
+    // --------------------------------------------------------
+    // Delete old image
+    // --------------------------------------------------------
 
     if (
         $oldImage &&
-        !str_contains(
-            $oldImage,
-            '/'
-        ) &&
-        !str_contains(
-            $oldImage,
-            '\\'
-        )
+        !str_contains($oldImage, '/') &&
+        !str_contains($oldImage, '\\')
     ) {
 
         $oldPath =
@@ -613,10 +748,7 @@ function uploadImage(
         if (
             is_file($oldPath)
         ) {
-
-            @unlink(
-                $oldPath
-            );
+            @unlink($oldPath);
         }
     }
 
@@ -625,9 +757,9 @@ function uploadImage(
 }
 
 
-// ============================================
+// ============================================================
 // IMAGE URL
-// ============================================
+// ============================================================
 
 /**
  * Get image URL or default placeholder.
@@ -645,26 +777,31 @@ function imageUrl(
     ) {
 
         return
-            UPLOAD_URL .
+            rtrim(UPLOAD_URL, '/') .
+            '/' .
             rawurlencode(
                 basename($filename)
             );
     }
 
 
-    // Local fallback placeholder
+    // --------------------------------------------------------
+    // Fallback placeholder
+    // --------------------------------------------------------
+
     return
         'https://picsum.photos/seed/' .
         rawurlencode(
-            'sktravel-' . ($filename ?? 'default')
+            'sktravel-' .
+            ($filename ?? 'default')
         ) .
         '/800/500';
 }
 
 
-// ============================================
+// ============================================================
 // PRICE FORMAT
-// ============================================
+// ============================================================
 
 /**
  * Format price in INR.
@@ -682,5 +819,4 @@ function formatPrice(
             ','
         );
 }
-
 ?>

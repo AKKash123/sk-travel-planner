@@ -1,159 +1,306 @@
-# ============================================
-# SK Travel Planner — Apache Configuration
-# ============================================
+# ============================================================
+# SK Travel Planner — Root .htaccess
+# Apache 2.4+
+# ============================================================
 
-# Enable Rewrite Engine
-RewriteEngine On
 
-# Set base path (change if in subfolder)
-RewriteBase /
+# ============================================================
+# CUSTOM ERROR DOCUMENTS
+# ============================================================
+#
+# LOCAL TESTING:
+# Project URL:
+# http://localhost/skplanner/
+#
+# These paths are ONLY for your XAMPP /skplanner installation.
+# ============================================================
 
-# --------------------------------------------
-# FORCE HTTPS (uncomment in production)
-# --------------------------------------------
-# RewriteCond %{HTTPS} off
-# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+ErrorDocument 401 /skplanner/error-401.php
+ErrorDocument 403 /skplanner/error-403.php
+ErrorDocument 404 /skplanner/error-404.php
+ErrorDocument 500 /skplanner/error-500.php
 
-# --------------------------------------------
-# CUSTOM ERROR PAGES
-# --------------------------------------------
-ErrorDocument 404 /error-404.php
-ErrorDocument 403 /error-403.php
-ErrorDocument 500 /error-500.php
-ErrorDocument 401 /error-401.php
 
-# --------------------------------------------
-# PREVENT DIRECTORY BROWSING
-# --------------------------------------------
+# ============================================================
+# PRODUCTION ERROR DOCUMENTS
+# ============================================================
+#
+# If the project is installed directly inside the domain's
+# public_html/document root, replace the LOCAL lines above with:
+#
+# ErrorDocument 401 /error-401.php
+# ErrorDocument 403 /error-403.php
+# ErrorDocument 404 /error-404.php
+# ErrorDocument 500 /error-500.php
+#
+# DO NOT enable both sets at the same time.
+# ============================================================
+
+
+# ============================================================
+# DISABLE DIRECTORY LISTING
+# ============================================================
+
 Options -Indexes
 
-# Custom 404
-ErrorDocument 404 /error-404.php
 
-# Prevent access to sensitive files
-<FilesMatch "\.(env|log|sql|ini)$">
+# ============================================================
+# REWRITE ENGINE
+# ============================================================
+
+<IfModule mod_rewrite.c>
+
+    RewriteEngine On
+
+
+    # ========================================================
+    # LOCAL TESTING
+    # ========================================================
+    #
+    # XAMPP:
+    # http://localhost/skplanner/
+    #
+    # Because the project is inside /skplanner/, use:
+    # ========================================================
+
+    RewriteBase /skplanner/
+
+
+    # ========================================================
+    # XML SITEMAP
+    # ========================================================
+    #
+    # Public URL:
+    # /skplanner/sitemap.xml
+    #
+    # Actual PHP file:
+    # /skplanner/sitemap.xml.php
+    #
+    # This rule MUST appear before any catch-all rewrite rule.
+    # ========================================================
+
+    RewriteRule ^sitemap\.xml$ sitemap.xml.php [L]
+
+
+    # ========================================================
+    # FORCE HTTPS
+    # ========================================================
+    #
+    # LOCAL:
+    # Keep disabled.
+    #
+    # PRODUCTION:
+    # Enable only after SSL is working correctly.
+    # ========================================================
+
+    # RewriteCond %{HTTPS} !=on
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+
+    # ========================================================
+    # BLOCK PHP / EXECUTABLE FILES INSIDE UPLOADS
+    # ========================================================
+
+    RewriteRule ^uploads/.*\.(php[0-9]?|phtml|phar|cgi|pl|py|sh)$ - [F,L,NC]
+
+
+    # ========================================================
+    # BLOCK GIT / SVN / HG
+    # ========================================================
+
+    RewriteRule (^|/)\.git(?:/|$) - [F,L,NC]
+    RewriteRule (^|/)\.svn(?:/|$) - [F,L,NC]
+    RewriteRule (^|/)\.hg(?:/|$) - [F,L,NC]
+
+
+    # ========================================================
+    # BLOCK ENVIRONMENT FILES
+    # ========================================================
+
+    RewriteRule (^|/)\.env(?:\..*)?$ - [F,L,NC]
+
+
+    # ========================================================
+    # BLOCK HTTP TRACE
+    # ========================================================
+
+    RewriteCond %{REQUEST_METHOD} ^TRACE$ [NC]
+    RewriteRule ^ - [F,L]
+
+
+    # ========================================================
+    # OPTIONAL CLEAN PHP URLS
+    # ========================================================
+    #
+    # Example:
+    #
+    # /about
+    # becomes
+    # /about.php
+    #
+    # Disabled for now because your project currently uses
+    # normal PHP filenames such as index.php and detail.php.
+    # ========================================================
+
+    # RewriteCond %{REQUEST_FILENAME} !-d
+    # RewriteCond %{REQUEST_FILENAME} !-f
+    # RewriteCond %{REQUEST_FILENAME}.php -f
+    # RewriteRule ^(.+?)/?$ $1.php [L]
+
+
+</IfModule>
+
+
+# ============================================================
+# PROTECT SENSITIVE FILE EXTENSIONS
+# Apache 2.4+
+# ============================================================
+
+<FilesMatch "\.(env|log|sql|ini|conf|config|bak|backup|old|orig|save|swp|dist|tmp|temp|inc)$">
     Require all denied
 </FilesMatch>
-# --------------------------------------------
-# BLOCK ACCESS TO SENSITIVE FILES
-# --------------------------------------------
-# Block config and hidden files
-<FilesMatch "^(config\.php|\.htaccess|\.htpasswd|\.env|\.git|\.svn)$">
-    Order allow,deny
-    Deny from all
+
+
+# ============================================================
+# PROTECT CONFIGURATION / SYSTEM FILES
+# ============================================================
+
+<FilesMatch "^(config\.php|\.htaccess|\.htpasswd|php\.ini)$">
+    Require all denied
 </FilesMatch>
 
-# Block access to PHP files in uploads folder
-<IfModule mod_rewrite.c>
-    RewriteRule ^uploads/.*\.php$ - [F,L]
-</IfModule>
 
-# Block direct access to admin session/setup files
-<FilesMatch "^(install\.php|setup-admin\.php|change-password\.php|build-pdf\.php|upgrade-pdf\.php|pdf-test\.php|generate-pdf-file\.php|error-log\.php)$">
-    # Uncomment below in production to block these files
-    # Order allow,deny
-    # Deny from all
+# ============================================================
+# PROTECT DEVELOPMENT / PACKAGE FILES
+# ============================================================
+
+<FilesMatch "^(composer\.json|composer\.lock|package\.json|package-lock\.json|yarn\.lock|README(\.md)?|CHANGELOG(\.md)?)$">
+    Require all denied
 </FilesMatch>
 
-# --------------------------------------------
+
+# ============================================================
 # SECURITY HEADERS
-# --------------------------------------------
+# ============================================================
+
 <IfModule mod_headers.c>
-    # XSS Protection
-    Header set X-XSS-Protection "1; mode=block"
-    # Prevent MIME type sniffing
-    Header set X-Content-Type-Options "nosniff"
-    # Clickjacking protection
-    Header set X-Frame-Options "SAMEORIGIN"
+
+    # Prevent MIME sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Prevent clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+
     # Referrer policy
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-    # Permissions policy
-    Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
-    # HSTS (uncomment in production with HTTPS)
-    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Browser permissions
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+    # Legacy browser XSS protection
+    Header always set X-XSS-Protection "1; mode=block"
+
+
+    # ========================================================
+    # HSTS — PRODUCTION ONLY
+    # ========================================================
+    #
+    # Enable ONLY after HTTPS is permanently enabled.
+    # ========================================================
+
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
 </IfModule>
 
-# --------------------------------------------
-# PHP SETTINGS (if using mod_php)
-# --------------------------------------------
-<IfModule mod_php7.c>
-    php_value display_errors 0
-    php_value log_errors 1
-    php_value error_log /logs/error.log
-    php_value upload_max_filesize 5M
-    php_value post_max_size 6M
-    php_value max_execution_time 30
-    php_value session.cookie_httponly 1
-    php_value session.use_strict_mode 1
-    php_value session.cookie_samesite Strict
-</IfModule>
 
-<IfModule mod_php.c>
-    php_value display_errors 0
-    php_value log_errors 1
-    php_value error_log /logs/error.log
-    php_value upload_max_filesize 5M
-    php_value post_max_size 6M
-    php_value max_execution_time 30
-    php_value session.cookie_httponly 1
-    php_value session.use_strict_mode 1
-    php_value session.cookie_samesite Strict
-</IfModule>
+# ============================================================
+# CACHE CONTROL
+# ============================================================
 
-# --------------------------------------------
-# CACHING — Static assets
-# --------------------------------------------
 <IfModule mod_expires.c>
+
     ExpiresActive On
+
     # Images
     ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
     ExpiresByType image/png "access plus 1 month"
     ExpiresByType image/gif "access plus 1 month"
     ExpiresByType image/webp "access plus 1 month"
     ExpiresByType image/svg+xml "access plus 1 month"
-    # CSS/JS
+    ExpiresByType image/x-icon "access plus 1 month"
+    ExpiresByType image/avif "access plus 1 month"
+
+    # CSS
     ExpiresByType text/css "access plus 1 week"
+
+    # JavaScript
     ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType text/javascript "access plus 1 week"
+
     # Fonts
-    ExpiresByType font/woff2 "access plus 1 year"
     ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+
     # Default
     ExpiresDefault "access plus 2 days"
+
 </IfModule>
+
+
+# ============================================================
+# CACHE HEADERS FOR STATIC FILES
+# ============================================================
 
 <IfModule mod_headers.c>
-    # Cache static files
-    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico|css|js|woff|woff2|ttf|eot)$">
+
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|avif|svg|ico|css|js|woff|woff2|ttf|eot)$">
         Header set Cache-Control "public, max-age=604800"
     </FilesMatch>
-    # No cache for dynamic pages
-    <FilesMatch "\.(php)$">
-        Header set Cache-Control "no-store, no-cache, must-revalidate"
+
+
+    # Never cache PHP pages
+    <FilesMatch "\.php$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
     </FilesMatch>
+
 </IfModule>
 
-# --------------------------------------------
-# COMPRESSION — GZIP
-# --------------------------------------------
+
+# ============================================================
+# GZIP COMPRESSION
+# ============================================================
+
 <IfModule mod_deflate.c>
+
     AddOutputFilterByType DEFLATE text/html
-    AddOutputFilterByType DEFLATE text/css
-    AddOutputFilterByType DEFLATE application/javascript
     AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
     AddOutputFilterByType DEFLATE application/json
     AddOutputFilterByType DEFLATE application/xml
     AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+
 </IfModule>
 
-# --------------------------------------------
-# CLEAN URLS (optional — remove .php extension)
-# --------------------------------------------
-# RewriteCond %{REQUEST_FILENAME} !-d
-# RewriteCond %{REQUEST_FILENAME}.php -f
-# RewriteRule ^(.*)$ $1.php [L]
 
-# --------------------------------------------
-# FORCE TRAILING SLASH (optional)
-# --------------------------------------------
-# RewriteCond %{REQUEST_URI} !\.[a-zA-Z0-9]+$ [NC]
-# RewriteCond %{REQUEST_URI} !(.*)/$ # RewriteRule ^(.*)$ /$1/ [L,R=301]
+# ============================================================
+# CHARACTER ENCODING
+# ============================================================
+
+<IfModule mod_mime.c>
+
+    AddDefaultCharset UTF-8
+
+</IfModule>
+
+
+# ============================================================
+# END OF SK TRAVEL PLANNER .htaccess
+# ============================================================

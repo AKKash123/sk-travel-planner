@@ -1,35 +1,64 @@
-# ============================================
+# ============================================================
 # SK Travel Planner — robots.txt
-# ============================================
+# LOCAL TESTING / XAMPP
+# ============================================================
 
 User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /uploads/
-Disallow: /logs/
-Disallow: /fpdf/
-Disallow: /config.php
-Disallow: /error-log.php
-Disallow: /change-password.php
-Disallow: /setup-admin.php
-Disallow: /install.php
-Disallow: /build-pdf.php
-Disallow: /pdf-test.php
-Disallow: /download-pdf.php
-Disallow: /password-generator.php
-Disallow: /error-404.php
-Disallow: /error-403.php
-Disallow: /error-500.php
-Disallow: /error-401.php
-Disallow: /error-handler.php
 
+# Allow the application
+Allow: /skplanner/
+
+# ------------------------------------------------------------
+# Private directories
+# ------------------------------------------------------------
+
+Disallow: /skplanner/admin/
+Disallow: /skplanner/uploads/
+Disallow: /skplanner/logs/
+Disallow: /skplanner/fpdf/
+
+# ------------------------------------------------------------
+# Private/system files
+# ------------------------------------------------------------
+
+Disallow: /skplanner/config.php
+Disallow: /skplanner/error-handler.php
+Disallow: /skplanner/error-log.php
+
+# ------------------------------------------------------------
+# Setup
+# ------------------------------------------------------------
+
+Disallow: /skplanner/install.php
+
+# ------------------------------------------------------------
+# Error pages
+# ------------------------------------------------------------
+
+Disallow: /skplanner/error-401.php
+Disallow: /skplanner/error-403.php
+Disallow: /skplanner/error-404.php
+Disallow: /skplanner/error-500.php
+
+# ------------------------------------------------------------
+# PDF / development files
+# ------------------------------------------------------------
+
+Disallow: /skplanner/build-pdf.php
+Disallow: /skplanner/pdf-test.php
+Disallow: /skplanner/download-pdf.php
+
+# ------------------------------------------------------------
 # Sitemap
-Sitemap: http://localhost/sk-travel-planner/sitemap.xml.php
+# ------------------------------------------------------------
 
-# Crawl delay (be gentle)
-Crawl-delay: 1
+Sitemap: http://localhost/skplanner/sitemap.xml
 
-# Block bad bots
+
+# ============================================================
+# BLOCK AGGRESSIVE CRAWLERS
+# ============================================================
+
 User-agent: AhrefsBot
 Disallow: /
 
@@ -47,3 +76,89 @@ Disallow: /
 
 User-agent: Screaming Frog SEO Spider
 Disallow: /
+
+#=======================================================================================================
+#Below code is production based
+#=======================================================================================================
+## ============================================================
+# SK Travel Planner — robots.txt
+# PRODUCTION / LIVE WEBSITE
+# ============================================================
+
+#User-agent: *
+
+# Allow the public website
+Allow: /
+
+# ------------------------------------------------------------
+# Private directories
+# ------------------------------------------------------------
+
+#Disallow: /admin/
+#Disallow: /uploads/
+#Disallow: /logs/
+#Disallow: /fpdf/
+
+# ------------------------------------------------------------
+# Private/system files
+# ------------------------------------------------------------
+
+#Disallow: /config.php
+#Disallow: /error-handler.php
+#Disallow: /error-log.php
+
+# ------------------------------------------------------------
+# Setup
+# ------------------------------------------------------------
+
+#Disallow: /install.php
+
+# ------------------------------------------------------------
+# Error pages
+# ------------------------------------------------------------
+
+#Disallow: /error-401.php
+#Disallow: /error-403.php
+#Disallow: /error-404.php
+#Disallow: /error-500.php
+
+# ------------------------------------------------------------
+# PDF / development files
+# ------------------------------------------------------------
+
+#Disallow: /build-pdf.php
+#Disallow: /pdf-test.php
+#Disallow: /download-pdf.php
+
+# ------------------------------------------------------------
+# Sitemap
+# ------------------------------------------------------------
+
+#Sitemap: https://yourdomain.com/sitemap.xml
+
+
+# ============================================================
+# BLOCK AGGRESSIVE CRAWLERS
+# ============================================================
+
+#User-agent: AhrefsBot
+#Disallow: /
+
+#User-agent: SemrushBot
+#Disallow: /
+
+#User-agent: MJ12bot
+#Disallow: /
+
+#User-agent: DotBot
+#Disallow: /
+
+#User-agent: SEOkicks-Robot
+#Disallow: /
+
+#User-agent: Screaming Frog SEO Spider
+#Disallow: /
+
+#=======================================================================================================
+#above code is production based
+#=======================================================================================================

@@ -14,7 +14,7 @@ session_destroy();
 
 // Start new session for flash message
 session_start();
- $_SESSION['flash_msg']  = 'Logged out successfully.';
+ $_SESSION['flash_msg']  = 'Logged in successfully.';
  $_SESSION['flash_type'] = 'success';
 
 header('Location: index.php');
