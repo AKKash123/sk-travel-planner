@@ -38,13 +38,23 @@ if (!$itin) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($itin['title']) ?> — <?= e(APP_NAME) ?></title>
-     <link rel="icon" type="image/png" sizes="32x32" href="logo.jpg">
-        <link rel="icon" type="image/png" sizes="16x16" href="logo.jpg">
-        <link rel="icon" type="image/x-icon" href="logo.jpg">
+                     <!-- Favicons -->
+        <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+        <link rel="icon" href="assets/icons/favicon.ico">
 
         <!-- Apple Touch Icon -->
-        <link rel="apple-touch-icon" sizes="180x180" href="logo.jpg">
-    <link rel="stylesheet" href="style.css">
+        <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+        <link
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+        >
+
+        <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         /* ============================================
