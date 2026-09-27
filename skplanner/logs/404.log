@@ -12,3 +12,4 @@
 2026-09-26 18:27:22 | 404 | METHOD=GET | URI=/skplanner/admin/555 | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
 2026-09-26 18:27:41 | 404 | METHOD=GET | URI=/skplanner/admin/555 | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
 2026-09-26 18:30:27 | 404 | METHOD=GET | URI=/skplanner/error-505.php | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-27 07:44:50 | 404 | METHOD=GET | URI=/skplanner/details.php | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0
