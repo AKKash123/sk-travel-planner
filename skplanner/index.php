@@ -7,7 +7,7 @@ $stmt->execute();
 $itineraries = $stmt->fetchAll();
 
 // WhatsApp number - country code + number, without + or spaces
-$whatsappNumber = '919876543210';
+$whatsappNumber = '917810807552';
 
 $whatsappDefaultMessage = rawurlencode(
     "Hello! I found your travel packages on " . APP_NAME . ". I would like to know more about your itineraries."
@@ -475,8 +475,8 @@ $appConfig = [
 
             <div>
                 <h4>Contact</h4>
-                <p><i class="fas fa-envelope"></i> info@sktravelplanner.in</p>
-                <p><i class="fas fa-phone"></i> +91 98765 43210</p>
+                <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">info@sktravelplanners.in</a></p>
+                <p><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= $whatsappNumber ?>" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>
 
                 <a
                     href="https://wa.me/<?= $whatsappNumber ?>"

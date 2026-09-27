@@ -61,6 +61,10 @@ if (!$itin) {
            Detail Page — Extended Styles
            ============================================ */
 
+        body.detail-page {
+            background-color: var(--light);
+        }
+
         /* ---- Hero Banner ---- */
         .detail-hero {
             position: relative;
@@ -575,7 +579,7 @@ if (!$itin) {
         }
     </style>
 </head>
-<body>
+<body class="detail-page">
 
 <!-- ============ NAVBAR ============ -->
 <nav class="navbar">
@@ -834,8 +838,8 @@ if (!$itin) {
             </div>
             <div>
                 <h4>Get in Touch</h4>
-                <p style="margin-bottom:6px;"><i class="fas fa-envelope" style="width:20px;"></i> info@sktravelplanner.com</p>
-                <p style="margin-bottom:6px;"><i class="fas fa-phone" style="width:20px;"></i> +91 98765 43210</p>
+                <p style="margin-bottom:6px;"><i class="fas fa-envelope" style="width:20px;"></i> <a href="mailto:info@sktravelplanners.in">info@sktravelplanners.in</a></p>
+                <p style="margin-bottom:6px;"><i class="fab fa-whatsapp" style="width:20px;"></i> <a href="https://wa.me/917810807552" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>
                 <p><i class="fas fa-map-marker-alt" style="width:20px;"></i> Mumbai, India</p>
             </div>
         </div>
