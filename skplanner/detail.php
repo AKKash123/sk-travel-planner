@@ -62,9 +62,39 @@ if (!$itin) {
            ============================================ */
 
         body.detail-page {
-            background-color: var(--light);
-        }
+            background:
+                radial-gradient(
+                    circle at 0% 0%,
+                    rgba(13, 115, 119, 0.09),
+                    transparent 32%
+                ),
+                radial-gradient(
+                    circle at 100% 8%,
+                    rgba(232, 145, 45, 0.12),
+                    transparent 30%
+                ),
+                 radial-gradient(
+                    ellipse at 5% 92%,
+                    rgba(72, 112, 91, 0.13) 0%,
+                    rgba(72, 112, 91, 0.05) 25%,
+                    transparent 48%
+                ),
+                linear-gradient(
+                    180deg,
+                    #fffaf3 0%,
+                    #f7f3ed 50%,
+                    #efe7da 100%
+                );
 
+            color: var(--text);
+        }
+        .detail-card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(27, 40, 56, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 18px 50px rgba(27, 40, 56, 0.09);
+            backdrop-filter: blur(12px);
+        }
         /* ---- Hero Banner ---- */
         .detail-hero {
             position: relative;
@@ -840,7 +870,6 @@ if (!$itin) {
                 <h4>Get in Touch</h4>
                 <p style="margin-bottom:6px;"><i class="fas fa-envelope" style="width:20px;"></i> <a href="mailto:info@sktravelplanners.in">info@sktravelplanners.in</a></p>
                 <p style="margin-bottom:6px;"><i class="fab fa-whatsapp" style="width:20px;"></i> <a href="https://wa.me/917810807552" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>
-                <p><i class="fas fa-map-marker-alt" style="width:20px;"></i> Mumbai, India</p>
             </div>
         </div>
         <div class="footer-bottom">

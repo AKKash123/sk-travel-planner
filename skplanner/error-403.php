@@ -40,7 +40,13 @@ if (is_dir($logDir) && is_writable($logDir)) {
     >
 
     <title>403 Forbidden — SK Travel Planner</title>
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+    <link rel="icon" href="assets/icons/favicon.ico">
 
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
     <!-- Root-relative CSS path -->
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
