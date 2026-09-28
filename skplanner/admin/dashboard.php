@@ -239,8 +239,9 @@ if ($page > $totalPages) $page = $totalPages;
 
         /* ---- Data Table ---- */
         .table-wrapper {
-            background:var(--white); border-radius:var(--radius); overflow:hidden;
+            background:var(--white); border-radius:var(--radius); overflow-x:auto; overflow-y:hidden;
             box-shadow:0 2px 12px rgba(0,0,0,0.04);
+            -webkit-overflow-scrolling:touch;
         }
         .data-table { width:100%; border-collapse:collapse; }
         .data-table thead { background:var(--dark); }
@@ -471,8 +472,22 @@ if ($page > $totalPages) $page = $totalPages;
             .toolbar { flex-direction:column; align-items:stretch; }
             .toolbar-left, .toolbar-right { width:100%; }
             .search-box { min-width:100%; }
-            .data-table { font-size:13px; }
+            .data-table { min-width:760px; font-size:13px; }
             .data-table th, .data-table td { padding:10px 12px; }
+            .data-table th:last-child,
+            .data-table td:last-child {
+                position:sticky;
+                right:0;
+                z-index:1;
+                background:var(--white);
+                box-shadow:-8px 0 12px rgba(0,0,0,0.08);
+            }
+            .data-table th:last-child {
+                z-index:2;
+                background:var(--dark);
+            }
+            .action-btns { gap:8px; }
+            .action-btn { width:40px; height:40px; flex:0 0 40px; }
             .img-thumb, .img-placeholder { width:56px; height:38px; }
         }
         @media(max-width:480px) {
