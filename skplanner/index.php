@@ -55,8 +55,8 @@ $appConfig = [
             href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
     >
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="extra.css">
+    <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__ . '/style.css') ?>">
+    <link rel="stylesheet" href="extra.css?v=<?= filemtime(__DIR__ . '/extra.css') ?>">
 
                 <!-- Favicons -->
         <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
