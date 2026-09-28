@@ -1,10 +1,25 @@
 <?php
-require_once 'config.php';
+// require_once 'config.php';
 
-// Fetch all active itineraries
-$stmt = $pdo->prepare("SELECT * FROM itineraries WHERE status = 1 ORDER BY created_at DESC");
+// // Fetch all active itineraries
+// $stmt = $pdo->prepare("SELECT * FROM itineraries WHERE status = 1 ORDER BY created_at DESC");
+// $stmt->execute();
+// $itineraries = $stmt->fetchAll();
+declare(strict_types=1);
+
+require_once __DIR__ . '/config.php';
+
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM itineraries
+     WHERE status = 1
+     ORDER BY created_at DESC"
+);
+
 $stmt->execute();
-$itineraries = $stmt->fetchAll();
+
+$itineraries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 // WhatsApp number - country code + number, without + or spaces
 $whatsappNumber = '917810807552';
@@ -37,11 +52,147 @@ $appConfig = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- Primary SEO -->
+    <meta name="description" content="Plan your dream trip with SK Travel Planners – best travel agency for tour packages, custom itineraries, holiday packages, honeymoon packages, adventure tours & North Bengal trips. Expert-curated day-wise itineraries, handpicked stays and local experiences. Chat on WhatsApp to book now.">
+    <meta name="keywords" content="SKTravel, SK Travel Planners, tour packages, custom itineraries, holiday packages, trip planning, North Bengal tours, best travel agency, vacation packages, honeymoon packages, family tour packages, adventure tours, budget travel packages, luxury travel packages, group tour packages, weekend getaways, holiday destinations, travel deals, tour operators, travel consultants, vacation planning, Darjeeling tour package, Sikkim tour package, Kalimpong tour, Gangtok holiday, Siliguri travel agency, North East India tours, Bhutan tour package, Nepal travel package, customized travel packages, affordable tour packages, travel booking online, all inclusive tour packages, travel offers, tour and travel agency near me, best travel planners, holiday planners, trip advisors, travel services, hotel booking, cab rental service, hill station packages, beach holidays, wildlife tours, cultural tours, heritage tours, pilgrimage tours, corporate tour packages, student tour packages, solo travel packages, last minute travel deals, airport transfers, travel agency in Siliguri, North Bengal travel agents, West Bengal tour operators">
+    <meta name="author" content="SK Travel Planners">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="https://sktravelplanners.com/">
+    
 
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn previews) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SK Travel Planners">
+   <meta property="og:title" content="SK Travel Planners | Best Tour & Travel Agency – Holiday Packages & Custom Itineraries">
+    <meta property="og:description" content="Book affordable tour packages, custom itineraries & holiday deals with SK Travel Planners. Expert-curated trips to North Bengal, Sikkim, Darjeeling, Bhutan & more. WhatsApp us now!">
+    <meta property="og:url" content="https://sktravel-planners.com/">
+    <meta property="og:image" content="https://picsum.photos/seed/sktravel-og/1200/630.jpg">
+    <meta property="og:site_name" content="SK Travel Planners">
+    <meta property="og:image:alt" content="SK Travel Planners: curated travel itineraries">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SK Travel Planners | Best Tour & Travel Agency – Holiday Packages & Custom Itineraries">
+    <meta name="twitter:description" content="Book affordable tour packages, custom itineraries & holiday deals with SK Travel Planners. North Bengal, Sikkim, Darjeeling, Bhutan & more.">
+    <meta name="twitter:image" content="https://picsum.photos/seed/sktravel-og/1200/630.jpg">
+    
+    <!-- Mobile / branding -->
+    <meta name="theme-color" content="#2d1f3d">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <!-- Geo Tags for Local SEO -->
+    <meta name="geo.region" content="IN-WB">
+    <meta name="geo.placename" content="Alipurduar">
+    <meta name="geo.position" content="26.489;89.527">
+    <meta name="ICBM" content="26.489, 89.527">
+     <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "TravelAgency",
+        "name": "SK Travel Planners",
+        "alternateName": "SKTravel",
+        "url": "https://sktravelplanners.com",
+        "logo": "https://picsum.photos/seed/sklogo/200/200.jpg",
+        "description": "Best tour and travel agency offering custom itineraries, holiday packages, honeymoon packages, adventure tours and vacation planning for North Bengal, Sikkim, Darjeeling, Bhutan and more.",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Alipurduar",
+            "addressRegion": "West Bengal",
+            "addressCountry": "IN"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude":26.489,
+            "longitude":89.527
+        },
+        "telephone": "+91-7810807552",
+        "priceRange": "₹₹",
+        "areaServed": ["North Bengal", "Sikkim", "Darjeeling", "Kalimpong", "Gangtok", "Bhutan", "Nepal", "North East India"],
+        "sameAs": ["https://wa.me/917810807552"],
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Tour Packages",
+            "itemListElement": [
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Darjeeling Tour Package"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Sikkim Holiday Package"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "North Bengal Adventure Tour"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Bhutan Group Tour Package"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Honeymoon Vacation Package"}}
+            ]
+        }
+    }
+    </script>
+
+    <!-- Breadcrumb Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://sktravelplanners.com/"},
+            {"@type": "ListItem", "position": 2, "name": "Itineraries", "item": "https://sktravelplanners.com/#Itineraries"},
+        ]
+    }
+    </script>
+
+    <!-- FAQ Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What tour packages does SK Travel Planners offer?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "SK Travel Planners offers a wide range of tour packages including Darjeeling tour packages, Sikkim holiday packages, North Bengal adventure tours, Bhutan group tours, Nepal vacation packages, honeymoon packages, family tour packages, and custom itineraries for all budgets."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How to book a trip with SK Travel Planners?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "You can book your trip easily by chatting with us on WhatsApp or Our chatbot. Our travel consultants will help you plan your custom itinerary, choose handpicked stays, and finalize your tour package within minutes."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is SK Travel Planners the best travel agency in North Bengal?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, SK Travel Planners is rated as one of the best travel agencies in North Bengal and Siliguri, offering expert-curated day-wise itineraries, affordable pricing, local experiences, and 24/7 support for all tour packages."
+                }
+            }
+        ]
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+</head>
     <!-- Lets CSS know JavaScript is running (skeletons / fade-ins only apply then) -->
     <script>document.documentElement.classList.add('js');</script>
 
@@ -55,8 +206,8 @@ $appConfig = [
             href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
     >
-    <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__ . '/style.css') ?>">
-    <link rel="stylesheet" href="extra.css?v=<?= filemtime(__DIR__ . '/extra.css') ?>">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="extra.css">
 
                 <!-- Favicons -->
         <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
@@ -75,6 +226,7 @@ $appConfig = [
     <noscript>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     </noscript>
+    
 </head>
 
 <body>
@@ -403,7 +555,78 @@ $appConfig = [
     </div>
 
 </section>
+<!-- NEW FAQ SECTION -->
+        <div id="faq" class="footer-faq" style="margin-top: 40px; margin-bottom: 40px;">
+            <h4 style="text-align:center; margin-bottom: 25px; font-size: 24px;">Frequently Asked Questions</h4>
+            <div style="max-width: 800px; margin: 0 auto;">
+                
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        How do I book a tour with SK Travel Planners?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Booking your dream trip is easy! You can start by browsing our itineraries and clicking "Inquire". Alternatively, reach out via email or phone. Process: 1. Consult (share dates/preferences), 2. Customize (we design & quote), 3. Confirm (secure with a deposit), 4. Prepare (we handle the logistics)!</p>
+                </details>
 
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex;; justify-content: space-between; align-items: center;">
+                        Are the tour prices per person or per group?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">All listed tour prices are <strong>per person</strong>, typically based on double/twin occupancy. Solo travelers will have a single supplement fee. However, if you are a private group booking a customized tour together, we can provide a flat group package rate upon request.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        What's included in the tour price?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Standard tours include: Accommodation, private air-conditioned transport with a chauffeur, local expert guides, daily breakfast, and all listed monument entrance fees. <em>Note: International flights, visa fees, and personal expenses/tips are generally not included.</em></p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        Can I customize a tour to my preferences?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;"><strong>Absolutely!</strong> Customization is our specialty. You can adjust the duration, upgrade hotels, add specific activities (like cooking classes or yoga retreats), or change the route. Just tell us what you envision, and we’ll build it.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        What is the cancellation policy?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Our standard policy (from date of departure): 60+ days prior: Deposit refunded (minus admin fee). 30-59 days: 50% non-refundable. 0-29 days: 100% non-refundable. *Peak season/luxury train bookings may have stricter policies. We strongly recommend travel insurance.*</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        Do you provide visa assistance?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">We provide <strong>comprehensive visa assistance</strong>. While we don't process visas directly, we supply all necessary supporting documents (hotel vouchers, itinerary) and guide you step-by-step through the Indian e-Visa online process.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        Are India tours safe for solo female travelers?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Yes! At SK Travel Planners, we prioritize your safety by providing vetted private transport, safe centrally-located hotels, professionally trained guides, and 24/7 on-ground support. You can also request female guides in certain cities for added comfort.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        What is the best time to visit India?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Generally, <strong>October to March</strong> is best for most of the country (Golden Triangle, Rajasthan, South India). April to June is ideal for the Himalayas. July to September is the monsoon season—great for lush landscapes and Ayurvedic treatments in Kerala.</p>
+                </details>
+
+            </div>
+        </div>
+        <!-- END FAQ SECTION -->
 <!-- =========================================================
      WHATSAPP CTA SECTION
 ========================================================= -->
@@ -446,6 +669,60 @@ $appConfig = [
 <!-- =========================================================
      FOOTER
 ========================================================= -->
+<!--<footer class="footer">-->
+
+<!--    <div class="container">-->
+
+<!--        <div class="footer-grid">-->
+
+<!--            <div>-->
+<!--                <h4>-->
+<!--                <img class="footer-logo" src="logo.jpg" alt="Logo">-->
+<!--                    <?= e(APP_NAME) ?>-->
+<!--                </h4>-->
+<!--                <p style="max-width:320px;">-->
+<!--                    Your trusted partner for unforgettable-->
+<!--                    travel experiences. Expert-crafted itineraries-->
+<!--                    for destinations across the globe.-->
+<!--                </p>-->
+<!--            </div>-->
+
+<!--            <div>-->
+<!--                <h4>Quick Links</h4>-->
+<!--                <ul style="list-style:none;">-->
+<!--                    <li style="margin-bottom:8px;"><a href="index.php">Home</a></li>-->
+<!--                    <li style="margin-bottom:8px;"><a href="#itineraries">Itineraries</a></li>-->
+<!--                    <li style="margin-bottom:8px;"><a href="admin/index.php">Admin Panel</a></li>-->
+<!--                </ul>-->
+<!--            </div>-->
+
+<!--            <div>-->
+<!--                <h4>Contact</h4>-->
+<!--                <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">sktravelplanners@gmail.com</a></p>-->
+<!--                <p><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= $whatsappNumber ?>" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>-->
+
+<!--                <a-->
+<!--                    href="https://wa.me/<?= $whatsappNumber ?>"-->
+<!--                    target="_blank"-->
+<!--                    rel="noopener"-->
+<!--                    class="footer-whatsapp"-->
+<!--                >-->
+<!--                    <i class="fab fa-whatsapp"></i>-->
+<!--                    WhatsApp Us-->
+<!--                </a>-->
+<!--            </div>-->
+
+<!--        </div>-->
+
+<!--        <div class="footer-bottom">-->
+<!--            &copy; <?= date('Y') ?> <?= e(APP_NAME) ?>. All rights reserved.-->
+<!--            <a href="privicy-policy.html" target="_blank">Terms & Conditions</a>-->
+<!--           &nbsp; &nbsp; <span> <a href = "https://e-websolutions.netlify.app/" target="_blank">Maintained by e-WebSolutions</a></span>-->
+<!--        </div>-->
+
+<!--    </div>-->
+
+<!--</footer>-->
 <footer class="footer">
 
     <div class="container">
@@ -466,16 +743,17 @@ $appConfig = [
 
             <div>
                 <h4>Quick Links</h4>
-                <ul style="list-style:none;">
+                <ul style="list-style:none; padding-left:0;">
                     <li style="margin-bottom:8px;"><a href="index.php">Home</a></li>
                     <li style="margin-bottom:8px;"><a href="#itineraries">Itineraries</a></li>
+                    <li style="margin-bottom:8px;"><a href="#faq">FAQ</a></li> <!-- NEW FAQ LINK -->
                     <li style="margin-bottom:8px;"><a href="admin/index.php">Admin Panel</a></li>
                 </ul>
             </div>
 
             <div>
                 <h4>Contact</h4>
-                <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">info@sktravelplanners.in</a></p>
+                <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">sktravelplanners@gmail.com</a></p>
                 <p><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= $whatsappNumber ?>" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>
 
                 <a
@@ -491,14 +769,17 @@ $appConfig = [
 
         </div>
 
+        
+
         <div class="footer-bottom">
             &copy; <?= date('Y') ?> <?= e(APP_NAME) ?>. All rights reserved.
+            <a href="privicy-policy.html" target="_blank">Terms & Conditions</a>
+           &nbsp; &nbsp; <span> <a href = "https://e-websolutions.netlify.app/" target="_blank">Maintained by e-WebSolutions</a></span>
         </div>
 
     </div>
 
 </footer>
-
 <!-- =========================================================
      FLOATING WHATSAPP BUTTON
 ========================================================= -->
@@ -610,6 +891,7 @@ $appConfig = [
 
         <div class="chatbot-footer">
             <span>Powered by <?= e(APP_NAME) ?></span>
+            
         </div>
 
     </div>
