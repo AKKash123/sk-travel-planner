@@ -52,14 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
         >
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="icon" type="image/png" sizes="32x32" href="../logo.jpg">
-        <link rel="icon" type="image/png" sizes="16x16" href="../logo.jpg">
-        <link rel="icon" type="image/x-icon" href="../logo.jpg">
-
-        <!-- Apple Touch Icon -->
-        <link rel="apple-touch-icon" sizes="180x180" href="../logo.jpg">
+        <link rel="stylesheet" href="../style.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/favicon-16.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+        <link rel="icon" href="../assets/icons/favicon.ico">
+        <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/apple-touch-icon.png">
 </head>
 <body class="login-page">
 
