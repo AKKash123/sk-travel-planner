@@ -1,0 +1,15 @@
+# Route sktravel-planners.com to the /skplanner folder
+# Upload this to: public_html/.htaccess
+# (Not needed if the domain's Document Root is already public_html/skplanner)
+
+DirectoryIndex index.php index.html
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Only for this domain (with or without www)
+    RewriteCond %{HTTP_HOST} ^(www\.)?sktravel-planners\.com$ [NC]
+    # Don't loop if already inside /skplanner
+    RewriteCond %{REQUEST_URI} !^/skplanner/
+    RewriteRule ^(.*)$ /skplanner/$1 [L]
+</IfModule>
