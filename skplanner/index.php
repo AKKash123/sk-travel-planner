@@ -21,6 +21,74 @@ $stmt->execute();
 $itineraries = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
+// ---------------------------------------------------------
+// Ratings (table: itinerary_reviews — see reviews.sql)
+// Wrapped in try/catch so the page still works before the table exists
+// ---------------------------------------------------------
+$ratings = [];
+try {
+    $rs = $pdo->query(
+        "SELECT itinerary_id, ROUND(AVG(rating), 1) AS avg_rating, COUNT(*) AS total
+         FROM itinerary_reviews
+         GROUP BY itinerary_id"
+    );
+    foreach ($rs->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $ratings[(int)$r['itinerary_id']] = [
+            'avg'   => (float)$r['avg_rating'],
+            'count' => (int)$r['total'],
+        ];
+    }
+} catch (Throwable $e) {
+    error_log('Ratings unavailable: ' . $e->getMessage());
+}
+
+// ---------------------------------------------------------
+// Price slider bounds come from the real package prices
+// ---------------------------------------------------------
+$allPrices = array_map(static fn($i) => (float)$i['price'], $itineraries);
+$priceMin  = $allPrices ? (int)(floor(min($allPrices) / 1000) * 1000) : 0;
+$priceMax  = $allPrices ? (int)(ceil(max($allPrices) / 1000) * 1000) : 50000;
+if ($priceMax <= $priceMin) {
+    $priceMax = $priceMin + 1000;
+}
+
+// ---------------------------------------------------------
+// Hero carousel — Incredible India (Unsplash photo IDs).
+// Swap any 'photo' for another Unsplash ID, or set 'url' to your
+// own image (e.g. 'assets/hero/goa.jpg'). A broken image is skipped
+// automatically. 'tint' is the colour shown while the photo loads.
+// ---------------------------------------------------------
+$heroSlides = [
+    ['title' => 'Taj Mahal',           'state' => 'Agra',    'photo' => 'photo-1564507592333-c60657eea523', 'tint' => '#6b5a5e'],
+    ['title' => 'Alleppey Backwaters', 'state' => 'Kerala',  'photo' => 'photo-1602216056096-3b40cc0c9944', 'tint' => '#2f5d50'],
+    ['title' => 'Hawa Mahal',          'state' => 'Jaipur',  'photo' => 'photo-1477587458883-47145ed94245', 'tint' => '#9a5b47'],
+    ['title' => 'Varanasi Ghats',      'state' => 'Varanasi','photo' => 'photo-1561361513-2d000a50f0dc',    'tint' => '#7a5a3a'],
+    ['title' => 'Goa Beaches',         'state' => 'Goa',     'photo' => 'photo-1512343879784-a960bf40e7f2', 'tint' => '#2d6f86'],
+];
+foreach ($heroSlides as &$hs) {
+    $slug  = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $hs['title']), '-'));
+    foreach (['jpg', 'jpeg', 'webp', 'png'] as $ext) {
+        if (is_file(__DIR__ . "/assets/hero/{$slug}.{$ext}")) {
+            $hs['url'] = "assets/hero/{$slug}.{$ext}";
+            break;
+        }
+    }
+}
+unset($hs);
+
+$heroSrc = static function (array $s, int $w): string {
+    if (!empty($s['url'])) {
+        return $s['url'];
+    }
+    return 'https://images.unsplash.com/' . $s['photo'] . '?auto=format&fit=crop&w=' . $w . '&q=70';
+};
+$heroSrcset = static function (array $s) use ($heroSrc): string {
+    if (!empty($s['url'])) {
+        return '';
+    }
+    return implode(', ', array_map(static fn($w) => $heroSrc($s, $w) . ' ' . $w . 'w', [640, 1024, 1600, 2200]));
+};
+
 // WhatsApp number - country code + number, without + or spaces
 $whatsappNumber = '917810807552';
 
@@ -62,7 +130,7 @@ $appConfig = [
     <meta name="keywords" content="SKTravel, SK Travel Planners, tour packages, custom itineraries, holiday packages, trip planning, North Bengal tours, best travel agency, vacation packages, honeymoon packages, family tour packages, adventure tours, budget travel packages, luxury travel packages, group tour packages, weekend getaways, holiday destinations, travel deals, tour operators, travel consultants, vacation planning, Darjeeling tour package, Sikkim tour package, Kalimpong tour, Gangtok holiday, Siliguri travel agency, North East India tours, Bhutan tour package, Nepal travel package, customized travel packages, affordable tour packages, travel booking online, all inclusive tour packages, travel offers, tour and travel agency near me, best travel planners, holiday planners, trip advisors, travel services, hotel booking, cab rental service, hill station packages, beach holidays, wildlife tours, cultural tours, heritage tours, pilgrimage tours, corporate tour packages, student tour packages, solo travel packages, last minute travel deals, airport transfers, travel agency in Siliguri, North Bengal travel agents, West Bengal tour operators">
     <meta name="author" content="SK Travel Planners">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <link rel="canonical" href="https://sktravelplanners.com/">
+    <link rel="canonical" href="https://sktravelplanner.com/">
     
 
     <!-- Open Graph (Facebook, WhatsApp, LinkedIn previews) -->
@@ -208,6 +276,12 @@ $appConfig = [
     >
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="extra.css">
+    <link rel="stylesheet" href="carousel-extras.css">
+    <?php if (!empty($heroSlides)): ?>
+    <link rel="preload" as="image" href="<?= e($heroSrc($heroSlides[0], 1600)) ?>"
+          <?php if ($heroSrcset($heroSlides[0])): ?>imagesrcset="<?= e($heroSrcset($heroSlides[0])) ?>" imagesizes="100vw"<?php endif; ?>
+          fetchpriority="high">
+    <?php endif; ?>
 
                 <!-- Favicons -->
         <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
@@ -262,83 +336,93 @@ $appConfig = [
 <!-- =========================================================
      HERO
 ========================================================= -->
-<section class="hero">
- 
-    <div class="hero-shapes">
-        <div class="hero-shape" style="width:300px;height:300px;top:10%;right:10%;animation-delay:-3s;"></div>
-        <div class="hero-shape" style="width:200px;height:200px;bottom:20%;left:5%;animation-delay:-7s;"></div>
-        <div class="hero-shape" style="width:150px;height:150px;top:60%;right:30%;animation-delay:-12s;"></div>
-    </div>
- 
-    <!-- Pure-CSS landscape: sun, mountains, sea, boat, hills, tourists -->
-    <div class="hero-scene" aria-hidden="true">
- 
-        <span class="sun"></span>
- 
-        <span class="mountain far m5"></span>
-        <span class="mountain far m1"></span>
-        <span class="mountain far m2"></span>
-        <span class="mountain near m3"></span>
-        <span class="mountain near m4"></span>
- 
-        <div class="sea">
-            <span class="wave w1"></span>
-            <span class="wave w2"></span>
-        </div>
- 
-        <span class="boat"><i></i></span>
- 
-        <div class="hill back">
-            <span class="pine" style="--x:30%;--b:86%"></span>
-            <span class="pine" style="--x:38%;--b:92%"></span>
-            <span class="pine" style="--x:62%;--b:92%"></span>
-            <span class="pine" style="--x:70%;--b:86%"></span>
-            <span class="pine" style="--x:80%;--b:74%"></span>
-        </div>
- 
-        <div class="hill front">
-            <span class="tourist t1"><i class="arm"></i><i class="leg l"></i><i class="leg r"></i></span>
-            <span class="tourist t3"><i class="arm"></i><i class="leg l"></i><i class="leg r"></i></span>
-            <span class="tourist t2"><i class="arm"></i><i class="leg l"></i><i class="leg r"></i></span>
-        </div>
- 
-        <div class="hill side"></div>
- 
-    </div>
- 
-    <div class="container hero-content">
- 
-        <h1>
-            Plan Your Dream
-            <span>Journey</span>
-            With Confidence
-        </h1>
- 
-        <p>
-            Curated travel itineraries crafted by experts.
-            From serene backwaters to majestic peaks —
-            your perfect trip awaits.
-        </p>
- 
-        <div class="hero-actions">
-            <a href="#itineraries" class="btn btn-accent btn-lg">
-                <i class="fas fa-compass"></i>
-                Explore Itineraries
-            </a>
- 
-            <a
-                href="https://wa.me/<?= $whatsappNumber ?>?text=<?= $whatsappDefaultMessage ?>"
-                target="_blank"
-                rel="noopener"
-                class="btn btn-whatsapp btn-lg"
+<section class="hero hero-carousel" aria-roledescription="carousel" aria-label="Incredible India destinations">
+
+    <div class="hc-track">
+        <?php foreach ($heroSlides as $i => $s): ?>
+            <figure
+                class="hc-slide<?= $i === 0 ? ' is-active' : '' ?>"
+                style="background:<?= e($s['tint']) ?>"
+                data-title="<?= e($s['title']) ?>"
+                data-state="<?= e($s['state']) ?>"
+                role="group"
+                aria-roledescription="slide"
+                aria-label="<?= $i + 1 ?> of <?= count($heroSlides) ?>"
             >
-                <i class="fab fa-whatsapp"></i>
-                Plan on WhatsApp
-            </a>
-        </div>
- 
+                <?php if ($i === 0): ?>
+                    <!-- First slide loads right away (it's the LCP image) -->
+                    <img
+                        src="<?= e($heroSrc($s, 1600)) ?>"
+                        <?php if ($heroSrcset($s)): ?>srcset="<?= e($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
+                        alt="<?= e($s['title']) ?>, <?= e($s['state']) ?>"
+                        width="1600" height="900"
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                        onload="this.classList.add('is-loaded')"
+                    >
+                <?php else: ?>
+                    <!-- Other slides are lazy: the browser won't fetch them until the script asks -->
+                    <img
+                        data-src="<?= e($heroSrc($s, 1600)) ?>"
+                        <?php if ($heroSrcset($s)): ?>data-srcset="<?= e($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
+                        alt="<?= e($s['title']) ?>, <?= e($s['state']) ?>"
+                        width="1600" height="900"
+                        decoding="async"
+                    >
+                <?php endif; ?>
+            </figure>
+        <?php endforeach; ?>
     </div>
- 
+
+    <div class="hc-overlay" aria-hidden="true"></div>
+
+    <div class="container hc-inner">
+        <div class="hero-content">
+
+            <h1>
+                Plan Your Dream
+                <span>Journey</span>
+                With Confidence
+            </h1>
+
+            <p>
+                Curated travel itineraries crafted by experts.
+                From serene backwaters to majestic peaks —
+                your perfect trip awaits.
+            </p>
+
+            <div class="hero-actions">
+                <a href="#itineraries" class="btn btn-accent btn-lg">
+                    <i class="fas fa-compass"></i>
+                    Explore Itineraries
+                </a>
+
+                <a
+                    href="https://wa.me/<?= $whatsappNumber ?>?text=<?= $whatsappDefaultMessage ?>"
+                    target="_blank"
+                    rel="noopener"
+                    class="btn btn-whatsapp btn-lg"
+                >
+                    <i class="fab fa-whatsapp"></i>
+                    Plan on WhatsApp
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="hc-place" aria-live="polite"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span></span></div>
+
+    <div class="hc-controls">
+        <button type="button" class="hc-btn hc-prev" aria-label="Previous slide"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="hc-dots" role="group" aria-label="Choose slide"></div>
+        <button type="button" class="hc-btn hc-toggle" aria-label="Pause slideshow"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
+        <button type="button" class="hc-btn hc-next" aria-label="Next slide"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+
+    <div class="hc-progress" aria-hidden="true"><span></span></div>
+
 </section>
 
 <!-- =========================================================
@@ -367,18 +451,28 @@ $appConfig = [
 
             <div class="filter-controls">
 
-                <div class="filter-group">
-                    <label for="priceFilter">
-                        <i class="fas fa-indian-rupee-sign"></i>
-                        Price Range
+                <div class="price-group">
+                    <label for="priceMin">
+                        <span><i class="fas fa-indian-rupee-sign"></i> Price Range</span>
+                        <output class="ps-value" id="priceValue" for="priceMin priceMax">Any price</output>
                     </label>
 
-                    <select id="priceFilter">
+                    <div class="price-slider" id="priceSlider">
+                        <div class="ps-track"><div class="ps-fill"></div></div>
+                        <input type="range" id="priceMin" aria-label="Minimum price"
+                               min="<?= $priceMin ?>" max="<?= $priceMax ?>" step="500" value="<?= $priceMin ?>">
+                        <input type="range" id="priceMax" aria-label="Maximum price"
+                               min="<?= $priceMin ?>" max="<?= $priceMax ?>" step="500" value="<?= $priceMax ?>">
+                    </div>
+
+                    <div class="ps-scale" aria-hidden="true">
+                        <span id="psMinLabel"></span>
+                        <span id="psMaxLabel"></span>
+                    </div>
+
+                    <!-- Hidden: the existing filter code in app.js reads this -->
+                    <select id="priceFilter" hidden tabindex="-1" aria-hidden="true">
                         <option value="all">All Prices</option>
-                        <option value="0-10000">Under ₹10,000</option>
-                        <option value="10000-20000">₹10,000 – ₹20,000</option>
-                        <option value="20000-30000">₹20,000 – ₹30,000</option>
-                        <option value="30000-999999999">₹30,000+</option>
                     </select>
                 </div>
 
@@ -480,6 +574,19 @@ $appConfig = [
                                 <?= (int)$itin['duration_days'] ?> Days
                             </span>
 
+                            <?php $rt = $ratings[(int)$itin['id']] ?? null; ?>
+                            <span
+                                class="rating-pill<?= $rt ? '' : ' is-new' ?>"
+                                aria-label="<?= $rt ? 'Rated ' . number_format($rt['avg'], 1) . ' out of 5 by ' . $rt['count'] . ' travellers' : 'No ratings yet' ?>"
+                            >
+                                <i class="fas fa-star" aria-hidden="true"></i>
+                                <?php if ($rt): ?>
+                                    <b><?= number_format($rt['avg'], 1) ?></b><em>(<?= $rt['count'] ?>)</em>
+                                <?php else: ?>
+                                    <b>New</b>
+                                <?php endif; ?>
+                            </span>
+
                         </div>
 
                         <!-- BODY -->
@@ -507,6 +614,25 @@ $appConfig = [
                                     <i class="fas fa-route"></i>
                                     <?= count($days) ?> Stops
                                 </span>
+                            </div>
+
+                            <div class="rate-box" data-id="<?= (int)$itin['id'] ?>">
+                                <div class="rate-stars" role="radiogroup" aria-label="Rate <?= e($itin['title']) ?>">
+                                    <?php for ($n = 1; $n <= 5; $n++): ?>
+                                        <button type="button" class="rate-star" role="radio" aria-checked="false"
+                                                data-value="<?= $n ?>" aria-label="<?= $n ?> star<?= $n > 1 ? 's' : '' ?>">
+                                            <i class="fas fa-star" aria-hidden="true"></i>
+                                        </button>
+                                    <?php endfor; ?>
+                                </div>
+                                <span class="rate-count<?= $rt ? '' : ' is-empty' ?>" aria-live="polite">
+                                    <?php if ($rt): ?>
+                                        <b><?= number_format($rt['avg'], 1) ?></b> · <?= $rt['count'] ?> rating<?= $rt['count'] === 1 ? '' : 's' ?>
+                                    <?php else: ?>
+                                        No ratings yet
+                                    <?php endif; ?>
+                                </span>
+                                <span class="rate-hint">Tap a star to rate</span>
                             </div>
 
                             <div class="itin-card-footer">
@@ -555,6 +681,46 @@ $appConfig = [
     </div>
 
 </section>
+<br>
+<!-- =========================================================
+     WHATSAPP CTA SECTION
+========================================================= -->
+<section class="whatsapp-section">
+
+    <div class="container">
+
+        <div class="whatsapp-card">
+
+            <div class="whatsapp-icon-large">
+                <i class="fab fa-whatsapp"></i>
+            </div>
+
+            <div class="whatsapp-content">
+                <span class="whatsapp-label">NEED HELP PLANNING?</span>
+                <h2>Let's Plan Your Perfect Trip</h2>
+                <p>
+                    Tell us your destination, travel dates,
+                    number of travellers and budget.
+                    Our team can help you build the right itinerary.
+                </p>
+            </div>
+
+            <a
+                href="https://wa.me/<?= $whatsappNumber ?>?text=<?= $whatsappDefaultMessage ?>"
+                target="_blank"
+                rel="noopener"
+                class="btn btn-whatsapp btn-lg"
+            >
+                <i class="fab fa-whatsapp"></i>
+                WhatsApp
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
 <!-- NEW FAQ SECTION -->
         <div id="faq" class="footer-faq" style="margin-top: 40px; margin-bottom: 40px;">
             <h4 style="text-align:center; margin-bottom: 25px; font-size: 24px;">Frequently Asked Questions</h4>
@@ -627,45 +793,6 @@ $appConfig = [
             </div>
         </div>
         <!-- END FAQ SECTION -->
-<!-- =========================================================
-     WHATSAPP CTA SECTION
-========================================================= -->
-<section class="whatsapp-section">
-
-    <div class="container">
-
-        <div class="whatsapp-card">
-
-            <div class="whatsapp-icon-large">
-                <i class="fab fa-whatsapp"></i>
-            </div>
-
-            <div class="whatsapp-content">
-                <span class="whatsapp-label">NEED HELP PLANNING?</span>
-                <h2>Let's Plan Your Perfect Trip</h2>
-                <p>
-                    Tell us your destination, travel dates,
-                    number of travellers and budget.
-                    Our team can help you build the right itinerary.
-                </p>
-            </div>
-
-            <a
-                href="https://wa.me/<?= $whatsappNumber ?>?text=<?= $whatsappDefaultMessage ?>"
-                target="_blank"
-                rel="noopener"
-                class="btn btn-whatsapp btn-lg"
-            >
-                <i class="fab fa-whatsapp"></i>
-                WhatsApp
-            </a>
-
-        </div>
-
-    </div>
-
-</section>
-
 <!-- =========================================================
      FOOTER
 ========================================================= -->
@@ -905,6 +1032,7 @@ $appConfig = [
     window.APP = <?= json_encode($appConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
 </script>
 <script src="app.js" defer></script>
+<script src="carousel-extras.js" defer></script>
 
 </body>
 </html>

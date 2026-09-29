@@ -26,6 +26,11 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 
 
+
+// define('DB_HOST', 'localhost');
+// define('DB_NAME', 'sktravel_planner');
+// define('DB_USER', 'sktravel_dbadmin');
+// define('DB_PASS', 'sktravel@2026');
 // ============================================================
 // APP CONFIGURATION
 // ============================================================
@@ -34,10 +39,10 @@ define('DB_PASS', '');
 // http://localhost/skplanner
 //
 // PRODUCTION example:
-// https://yourdomain.com
+// https://sktravel-planners.com
 // ============================================================
 
-define('APP_NAME', 'SK Travel Planner');
+define('APP_NAME', 'SK Travel Planners');
 
 define(
     'APP_URL',

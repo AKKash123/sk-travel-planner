@@ -1,1 +1,12 @@
 2026-09-26 18:30:38 | 500 | METHOD:GET | IP:::1 | URL:/skplanner/error-500.php
+[27-Sep-2026 20:43:06 Europe/Berlin] SK Travel Planner - Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'sktravel_dbadmin'@'localhost' (using password: YES)
+[27-Sep-2026 20:43:06 Europe/Berlin] PHP Fatal error:  Cannot redeclare e() (previously declared in C:\xampp\htdocs\skplanner\config.php:304) in C:\xampp\htdocs\skplanner\error-500.php on line 62
+[27-Sep-2026 20:43:08 Europe/Berlin] SK Travel Planner - Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'sktravel_dbadmin'@'localhost' (using password: YES)
+[27-Sep-2026 20:43:08 Europe/Berlin] PHP Fatal error:  Cannot redeclare e() (previously declared in C:\xampp\htdocs\skplanner\config.php:304) in C:\xampp\htdocs\skplanner\error-500.php on line 62
+[27-Sep-2026 20:43:19 Europe/Berlin] SK Travel Planner - Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'sktravel_dbadmin'@'localhost' (using password: YES)
+[27-Sep-2026 20:43:19 Europe/Berlin] PHP Fatal error:  Cannot redeclare e() (previously declared in C:\xampp\htdocs\skplanner\config.php:304) in C:\xampp\htdocs\skplanner\error-500.php on line 62
+[27-Sep-2026 20:43:20 Europe/Berlin] SK Travel Planner - Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'sktravel_dbadmin'@'localhost' (using password: YES)
+[27-Sep-2026 20:43:20 Europe/Berlin] PHP Fatal error:  Cannot redeclare e() (previously declared in C:\xampp\htdocs\skplanner\config.php:304) in C:\xampp\htdocs\skplanner\error-500.php on line 62
+[27-Sep-2026 20:44:04 Europe/Berlin] SK Travel Planner - Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'sktravel_dbadmin'@'localhost' (using password: YES)
+[27-Sep-2026 20:44:04 Europe/Berlin] PHP Fatal error:  Cannot redeclare e() (previously declared in C:\xampp\htdocs\skplanner\config.php:304) in C:\xampp\htdocs\skplanner\error-500.php on line 62
+[29-Sep-2026 13:49:56 Europe/Berlin] Ratings unavailable: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'sk_travel_planner.itinerary_reviews' doesn't exist

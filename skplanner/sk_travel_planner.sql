@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 26, 2026 at 08:53 PM
+-- Generation Time: Sep 29, 2026 at 02:18 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.1.17
 
@@ -105,6 +105,30 @@ INSERT INTO `itinerary_images` (`id`, `itinerary_id`, `image`, `sort_order`, `cr
 (11, 3, 'uploads/itineraries/kerala-3.jpg', 3, '2026-09-22 17:08:12'),
 (12, 3, 'uploads/itineraries/kerala-4.jpg', 4, '2026-09-22 17:08:12');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `itinerary_reviews`
+--
+
+CREATE TABLE `itinerary_reviews` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `itinerary_id` int(11) NOT NULL,
+  `voter_hash` char(64) NOT NULL,
+  `rating` tinyint(3) UNSIGNED NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `itinerary_reviews`
+--
+
+INSERT INTO `itinerary_reviews` (`id`, `itinerary_id`, `voter_hash`, `rating`, `created_at`, `updated_at`) VALUES
+(1, 1, '8528cbb54c867ff6b1c3f396b286c7835ea42cd50460f46e3d983dddaf33f506', 5, '2026-09-29 11:59:34', '2026-09-29 11:59:44'),
+(2, 2, '8528cbb54c867ff6b1c3f396b286c7835ea42cd50460f46e3d983dddaf33f506', 3, '2026-09-29 12:00:26', '2026-09-29 12:00:26'),
+(3, 3, '8528cbb54c867ff6b1c3f396b286c7835ea42cd50460f46e3d983dddaf33f506', 4, '2026-09-29 12:14:45', '2026-09-29 12:14:45');
+
 --
 -- Indexes for dumped tables
 --
@@ -130,6 +154,14 @@ ALTER TABLE `itinerary_images`
   ADD KEY `idx_itinerary_id` (`itinerary_id`);
 
 --
+-- Indexes for table `itinerary_reviews`
+--
+ALTER TABLE `itinerary_reviews`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_vote` (`itinerary_id`,`voter_hash`),
+  ADD KEY `idx_itinerary` (`itinerary_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -150,6 +182,12 @@ ALTER TABLE `itineraries`
 --
 ALTER TABLE `itinerary_images`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT for table `itinerary_reviews`
+--
+ALTER TABLE `itinerary_reviews`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables

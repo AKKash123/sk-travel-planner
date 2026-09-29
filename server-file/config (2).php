@@ -73,12 +73,12 @@ define('DB_HOST', 'localhost');
 
 define(
     'DB_NAME',
-    'sktravel_planner'
+    'sktrave1_planner'
 );
 
 define(
     'DB_USER',
-    'sktravel_dbadmin'
+    'sktrave1_dbadmin'
 );
 
 /*

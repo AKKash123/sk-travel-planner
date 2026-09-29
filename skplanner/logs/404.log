@@ -13,3 +13,24 @@
 2026-09-26 18:27:41 | 404 | METHOD=GET | URI=/skplanner/admin/555 | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
 2026-09-26 18:30:27 | 404 | METHOD=GET | URI=/skplanner/error-505.php | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
 2026-09-27 07:44:50 | 404 | METHOD=GET | URI=/skplanner/details.php | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0
+2026-09-27 21:00:19 | 404 | METHOD=GET | URI=/skplanner/hhhh | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:49:56 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:49:56 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.js | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:49:56 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:51:57 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:51:58 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:51:58 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.js | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:55:09 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:55:09 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:59:00 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 13:59:00 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:00:00 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:00:00 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:00:49 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:01:29 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36
+2026-09-29 14:02:06 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:02:06 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:02:09 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:02:09 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:03:06 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+2026-09-29 14:03:06 | 404 | METHOD=GET | URI=/skplanner/carousel-extras.css | IP=::1 | UA=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
