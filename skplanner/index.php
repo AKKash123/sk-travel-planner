@@ -42,6 +42,51 @@ try {
     error_log('Ratings unavailable: ' . $e->getMessage());
 }
 
+
+// ---------------------------------------------------------
+// Primary destinations (auto-built from the packages)
+// "Darjeeling, Sikkim" -> primary = "Darjeeling"
+// ---------------------------------------------------------
+$destCounts = [];
+foreach ($itineraries as $it) {
+    $primary = trim(explode(',', (string)$it['destination'])[0]);
+    if ($primary === '') continue;
+    $key = mb_strtolower($primary);
+    if (!isset($destCounts[$key])) {
+        $destCounts[$key] = [
+            'label' => $primary,
+            'count' => 0,
+            'image' => $it['image'],   // NEW: used by the destination cards
+        ];
+    }
+    $destCounts[$key]['count']++;
+}
+uasort($destCounts, static fn($a, $b) => $b['count'] <=> $a['count']);
+$primaryDestinations = array_slice($destCounts, 0, 8, true);
+
+
+// ---------------------------------------------------------
+// Best sellers
+// ---------------------------------------------------------
+$sales = []; // itinerary_id => number of bookings
+/* OPTIONAL: use real sales if you have such a table
+try {
+    $bs = $pdo->query("SELECT itinerary_id, COUNT(*) AS n FROM bookings GROUP BY itinerary_id");
+    foreach ($bs->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $sales[(int)$r['itinerary_id']] = (int)$r['n'];
+    }
+} catch (Throwable $e) { error_log('Sales unavailable: ' . $e->getMessage()); }
+*/
+$bestSellers = $itineraries;
+usort($bestSellers, static function ($a, $b) use ($ratings, $sales) {
+    $score = static function ($i) use ($ratings, $sales) {
+        $id = (int)$i['id'];
+        return ($sales[$id] ?? 0) * 100
+             + ($ratings[$id]['count'] ?? 0) * ($ratings[$id]['avg'] ?? 0);
+    };
+    return $score($b) <=> $score($a) ?: strcmp((string)$b['created_at'], (string)$a['created_at']);
+});
+$bestSellers = array_slice($bestSellers, 0, 8);
 // ---------------------------------------------------------
 // Price slider bounds come from the real package prices
 // ---------------------------------------------------------
@@ -58,18 +103,30 @@ if ($priceMax <= $priceMin) {
 // own image (e.g. 'assets/hero/goa.jpg'). A broken image is skipped
 // automatically. 'tint' is the colour shown while the photo loads.
 // ---------------------------------------------------------
+// ---------------------------------------------------------
+// Hero carousel: North Bengal, images fetched online from
+// Wikimedia Commons (free licences). To use your own photo for
+// any slide, drop  assets/hero/<slug>.jpg  and it overrides the online one.
+// ---------------------------------------------------------
 $heroSlides = [
-    ['title' => 'Taj Mahal',           'state' => 'Agra',    'photo' => 'photo-1564507592333-c60657eea523', 'tint' => '#6b5a5e'],
-    ['title' => 'Alleppey Backwaters', 'state' => 'Kerala',  'photo' => 'photo-1602216056096-3b40cc0c9944', 'tint' => '#2f5d50'],
-    ['title' => 'Hawa Mahal',          'state' => 'Jaipur',  'photo' => 'photo-1477587458883-47145ed94245', 'tint' => '#9a5b47'],
-    ['title' => 'Varanasi Ghats',      'state' => 'Varanasi','photo' => 'photo-1561361513-2d000a50f0dc',    'tint' => '#7a5a3a'],
-    ['title' => 'Goa Beaches',         'state' => 'Goa',     'photo' => 'photo-1512343879784-a960bf40e7f2', 'tint' => '#2d6f86'],
+    ['slug' => 'darjeeling-pine-forest', 'title' => 'Pine Forests of Darjeeling', 'state' => 'Darjeeling',   'tint' => '#2f4a3a', 'wiki' => 'Pine trees Darjeeling.jpg'],
+    ['slug' => 'yumthang-valley',        'title' => 'Yumthang Valley of Flowers', 'state' => 'North Sikkim', 'tint' => '#4a6a4a', 'wiki' => 'Yumthang Valley at North Sikkim, India 01.jpg'],
+    ['slug' => 'ghum-toy-train',         'title' => 'Toy Train at Ghum Station',  'state' => 'Ghum',         'tint' => '#3b4a5a', 'wiki' => 'A train of Darjeeling Himalayan Railway at Ghoom Station.jpg'],
+    ['slug' => 'kolakham-view',          'title' => 'Kolakham Viewpoint',         'state' => 'Kalimpong',    'tint' => '#3f6b55', 'wiki' => 'Kolakham view.jpg'],
+    ['slug' => 'north-sikkim-zero-point','title' => 'Zero Point, North Sikkim',   'state' => 'North Sikkim', 'tint' => '#5a6f85', 'wiki' => 'Zero Point, Sikkim.jpg'],
+    ['slug' => 'kurseong-tea-estates',   'title' => 'Kurseong Tea Estates',       'state' => 'Kurseong',     'tint' => '#3f6b45', 'wiki' => 'Tea estate in kurseong.jpg'],
+    ['slug' => 'dow-hill',               'title' => 'Dow Hill Forest',            'state' => 'Kurseong',     'tint' => '#2f4a35', 'wiki' => 'Dow hill Kurseong.jpg'],
+    ['slug' => 'kanchenjunga-view',      'title' => 'Kanchenjunga Panorama',      'state' => 'Darjeeling',   'tint' => '#5a6a80', 'wiki' => 'Darjeeling-panoramic.jpg'],
+    ['slug' => 'mirik-pine-road',        'title' => 'Pine Road to Mirik',         'state' => 'Mirik',        'tint' => '#2f4f3a', 'wiki' => 'A Route through Pine Forest.jpg'],
+    ['slug' => 'sumendu-lake',           'title' => 'Sumendu Lake',               'state' => 'Mirik',        'tint' => '#2d6f86', 'wiki' => 'Sumendu Lake, Mirik.jpg'],
+    ['slug' => 'dooars-tea-garden',      'title' => 'Tea Gardens of the Dooars',  'state' => 'Dooars',       'tint' => '#3a5a30', 'wiki' => 'Tea garden in dooars.jpg'],
 ];
+
 foreach ($heroSlides as &$hs) {
-    $slug  = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $hs['title']), '-'));
+    $hs['url'] = null;                       // local override
     foreach (['jpg', 'jpeg', 'webp', 'png'] as $ext) {
-        if (is_file(__DIR__ . "/assets/hero/{$slug}.{$ext}")) {
-            $hs['url'] = "assets/hero/{$slug}.{$ext}";
+        if (is_file(__DIR__ . "/assets/hero/{$hs['slug']}.{$ext}")) {
+            $hs['url'] = "assets/hero/{$hs['slug']}.{$ext}";
             break;
         }
     }
@@ -80,13 +137,16 @@ $heroSrc = static function (array $s, int $w): string {
     if (!empty($s['url'])) {
         return $s['url'];
     }
-    return 'https://images.unsplash.com/' . $s['photo'] . '?auto=format&fit=crop&w=' . $w . '&q=70';
+    // Wikimedia Commons resizes on the fly with ?width=
+    return 'https://commons.wikimedia.org/wiki/Special:FilePath/'
+         . rawurlencode(str_replace(' ', '_', $s['wiki']))
+         . '?width=' . $w;
 };
 $heroSrcset = static function (array $s) use ($heroSrc): string {
     if (!empty($s['url'])) {
         return '';
     }
-    return implode(', ', array_map(static fn($w) => $heroSrc($s, $w) . ' ' . $w . 'w', [640, 1024, 1600, 2200]));
+    return implode(', ', array_map(static fn($w) => $heroSrc($s, $w) . ' ' . $w . 'w', [640, 1024, 1600]));
 };
 
 // WhatsApp number - country code + number, without + or spaces
@@ -425,6 +485,77 @@ $appConfig = [
 
 </section>
 
+<?php if (!empty($bestSellers)): ?>
+<section class="section bs-section" id="best-sellers">
+    <div class="container">
+        <?php
+// Trust line numbers from real reviews (hidden when there are none)
+        $bsReviewTotal = 0; $bsWeighted = 0.0;
+        foreach ($ratings as $r) {
+            $bsReviewTotal += $r['count'];
+            $bsWeighted    += $r['avg'] * $r['count'];
+        }
+        $bsOverallAvg = $bsReviewTotal ? $bsWeighted / $bsReviewTotal : 0;
+        ?>
+        <div class="bs-heading">
+            <div class="bs-heading-text">
+                <span class="bs-eyebrow"><i class="fas fa-award" aria-hidden="true"></i> Traveller Favourites</span>
+                <h2>Our Best-Selling <span>Tour Packages</span></h2>
+                <span class="bs-divider" aria-hidden="true"><i></i><i class="fas fa-compass"></i><i></i></span>
+                <p>Handpicked journeys that travellers book again and again, with expert-planned
+                itineraries, trusted stays and dependable local support.</p>
+
+                <?php if ($bsReviewTotal): ?>
+                <ul class="bs-trust">
+                    <li><i class="fas fa-star" aria-hidden="true"></i>
+                        <b><?= number_format($bsOverallAvg, 1) ?>/5</b> average rating</li>
+                    <li><i class="fas fa-users" aria-hidden="true"></i>
+                        <b><?= (int)$bsReviewTotal ?>+</b> traveller reviews</li>
+                    <li><i class="fas fa-headset" aria-hidden="true"></i>
+                        <b>24/7</b> trip support</li>
+                </ul>
+                <?php endif; ?>
+            </div>
+
+            <a href="#itineraries" class="bs-viewall">
+                View all packages <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="bs-carousel" id="bsCarousel" aria-roledescription="carousel" aria-label="Best selling packages">
+            <button type="button" class="bs-arrow bs-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+
+            <div class="bs-track" id="bsTrack">
+                <?php foreach ($bestSellers as $n => $b):
+                    $rt = $ratings[(int)$b['id']] ?? null; ?>
+                    <article class="bs-card">
+                        <div class="bs-img">
+                            <img src="<?= e(imageUrl($b['image'])) ?>" alt="<?= e($b['title']) ?>"
+                                 loading="<?= $n < 2 ? 'eager' : 'lazy' ?>" decoding="async">
+                            <span class="bs-badge"><i class="fas fa-fire"></i> Best Seller</span>
+                            <span class="bs-days"><?= (int)$b['duration_days'] ?> Days</span>
+                        </div>
+                        <div class="bs-body">
+                            <h3><?= e($b['title']) ?></h3>
+                            <div class="bs-dest"><i class="fas fa-map-marker-alt"></i> <?= e($b['destination']) ?></div>
+                            <?php if ($rt): ?>
+                                <div class="bs-rate"><i class="fas fa-star"></i> <b><?= number_format($rt['avg'], 1) ?></b> (<?= $rt['count'] ?>)</div>
+                            <?php endif; ?>
+                            <div class="bs-foot">
+                                <span class="bs-price"><?= e(formatPrice($b['price'])) ?></span>
+                                <a class="btn btn-primary btn-sm" href="detail.php?id=<?= (int)$b['id'] ?>">View <i class="fas fa-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <button type="button" class="bs-arrow bs-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="bs-dots" id="bsDots" role="group" aria-label="Choose slide"></div>
+    </div>
+</section>
+<?php endif; ?>
 <!-- =========================================================
      ITINERARIES
 ========================================================= -->
@@ -432,23 +563,56 @@ $appConfig = [
 
     <div class="container">
 
-        <div class="section-heading">
-            <h2>Handcrafted Itineraries</h2>
-            <p>
-                Each itinerary is meticulously planned with
-                day-wise schedules, handpicked stays,
-                and local experiences.
-            </p>
+        <div class="bs-heading">
+            <div class="bs-heading-text">
+                <h2>Primary<span>Travel Destinations</span></h2>
+                <span class="bs-divider" aria-hidden="true"><i></i><i class="fas fa-compass"></i><i></i></span>
+                <?php if (!empty($primaryDestinations)): ?>
+                    <div class="dc-wrap">
+                        <button type="button" class="dc-arrow dc-prev" aria-label="Previous destinations" hidden>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+
+                        <div class="dest-chips dc-track" id="destChips" role="group" aria-label="Popular destinations">
+
+                            <button type="button" class="dest-chip dest-card is-active is-all" data-dest="">
+                                <span class="dc-img dc-all"><i class="fas fa-earth-asia"></i></span>
+                                <span class="dc-info">
+                                    <strong>All Destinations</strong>
+                                    <small><?= count($itineraries) ?> packages</small>
+                                </span>
+                            </button>
+
+                            <?php foreach ($primaryDestinations as $d): ?>
+                            <button type="button" class="dest-chip dest-card" data-dest="<?= e($d['label']) ?>">
+                                <span class="dc-img">
+                                    <img src="<?= e(imageUrl($d['image'])) ?>" alt="" loading="lazy" decoding="async">
+                                </span>
+                                <span class="dc-info">
+                                    <strong><?= e($d['label']) ?></strong>
+                                    <small><?= (int)$d['count'] ?> package<?= $d['count'] > 1 ? 's' : '' ?></small>
+                                </span>
+                            </button>
+                            <?php endforeach; ?>
+
+                        </div>
+
+                        <button type="button" class="dc-arrow dc-next" aria-label="Next destinations">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <?php endif; ?>
+            </div>
         </div>
 
         <!-- FILTER BAR -->
         <div class="filter-wrapper">
 
+
             <div class="filter-title">
                 <i class="fas fa-sliders"></i>
                 <span>Find Your Perfect Package</span>
             </div>
-
             <div class="filter-controls">
 
                 <div class="price-group">
@@ -509,6 +673,23 @@ $appConfig = [
 
         </div>
 
+        <div class="bs-heading">
+            <div class="bs-heading-text">
+                <span class="bs-eyebrow is-purple"><i class="fas fa-map-location-dot" aria-hidden="true"></i> Explore &amp; Compare</span>
+                <h2>Handicrafted<span>Travel Packages</span></h2>
+                <span class="bs-divider" aria-hidden="true"><i></i><i class="fas fa-compass"></i><i></i></span>
+                <p>Every journey is planned by local experts, with clear day-wise schedules,
+                carefully chosen stays and authentic local experiences. Filter by destination
+                and budget to find the trip that fits you.</p>
+
+                <ul class="bs-trust">
+                    <li><i class="fas fa-calendar-check" aria-hidden="true"></i> <b>Day-wise</b> plans</li>
+                    <li><i class="fas fa-hotel" aria-hidden="true"></i> <b>Handpicked</b> stays</li>
+                    <li><i class="fas fa-user-tie" aria-hidden="true"></i> <b>Local</b> experts</li>
+                    <li><i class="fas fa-pen-ruler" aria-hidden="true"></i> <b>Fully</b> customisable</li>
+                </ul>
+            </div>
+        </div>
         <?php if (empty($itineraries)): ?>
 
             <div class="empty-state">
@@ -1032,6 +1213,210 @@ $appConfig = [
     window.APP = <?= json_encode($appConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
 </script>
 <script src="app.js" defer></script>
+<style>
+/* ---------- destination chips ---------- */
+.dest-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.dest-chip{border:1px solid rgba(0,0,0,.15);background:#fff;color:inherit;border-radius:999px;
+  padding:7px 14px;font:inherit;font-size:.9rem;cursor:pointer;transition:.2s}
+.dest-chip em{font-style:normal;font-size:.75rem;opacity:.6;margin-left:4px}
+.dest-chip:hover{border-color:#2d1f3d}
+.dest-chip.is-active{background:#2d1f3d;color:#fff;border-color:#2d1f3d}
+
+/* ---------- best-seller carousel ---------- */
+.bs-carousel{position:relative}
+.bs-track{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  padding:6px 2px 14px;scrollbar-width:none}
+.bs-track::-webkit-scrollbar{display:none}
+.bs-card{flex:0 0 calc((100% - 40px)/3);scroll-snap-align:start;background:#fff;border-radius:14px;
+  overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.09);display:flex;flex-direction:column}
+.bs-img{position:relative;aspect-ratio:16/10;background:#ddd}
+.bs-img img{width:100%;height:100%;object-fit:cover;display:block}
+.bs-badge{position:absolute;top:12px;left:12px;background:#e8590c;color:#fff;font-size:.75rem;
+  font-weight:600;padding:5px 10px;border-radius:999px}
+.bs-days{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.65);color:#fff;
+  font-size:.75rem;padding:4px 10px;border-radius:999px}
+.bs-body{padding:16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.bs-body h3{font-size:1.1rem;margin:0}
+.bs-dest,.bs-rate{font-size:.88rem;opacity:.8}
+.bs-rate i{color:#f5a623}
+.bs-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding-top:10px}
+.bs-price{font-weight:700;font-size:1.1rem}
+.bs-arrow{position:absolute;top:40%;transform:translateY(-50%);z-index:2;width:42px;height:42px;
+  border-radius:50%;border:0;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+.bs-prev{left:-14px}.bs-next{right:-14px}
+.bs-dots{display:flex;justify-content:center;gap:8px;margin-top:8px}
+.bs-dots button{width:9px;height:9px;border-radius:50%;border:0;background:#c9c9c9;padding:0;cursor:pointer}
+.bs-dots button.on{background:#2d1f3d;width:24px;border-radius:6px}
+@media(max-width:900px){.bs-card{flex-basis:calc((100% - 20px)/2)}}
+@media(max-width:600px){.bs-card{flex-basis:88%}.bs-arrow{display:none}}
+/* ---------- best-seller heading ---------- */
+.bs-heading{position:relative;text-align:center;max-width:760px;margin:0 auto 38px}
+.bs-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;
+  background:rgba(232,89,12,.1);color:#e8590c;font-size:.78rem;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase}
+.bs-heading h2{margin:14px 0 10px;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.15;
+  color:#2d1f3d;letter-spacing:-.01em}
+.bs-heading h2 span{color:#e8590c}
+.bs-divider{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 auto 14px;color:#e8590c}
+.bs-divider i:not(.fas){display:block;width:56px;height:2px;
+  background:linear-gradient(90deg,transparent,#e8590c)}
+.bs-divider i:last-child{background:linear-gradient(270deg,transparent,#e8590c)}
+.bs-heading p{margin:0 auto;max-width:600px;font-size:1.05rem;line-height:1.65;opacity:.75}
+
+.bs-trust{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;
+  margin:22px 0 0;padding:14px 0 0;border-top:1px solid rgba(0,0,0,.08);font-size:.9rem}
+.bs-trust li{display:flex;align-items:center;gap:8px}
+.bs-trust i{color:#e8590c}
+.bs-trust b{color:#2d1f3d}
+
+.bs-viewall{position:absolute;right:0;bottom:0;display:inline-flex;align-items:center;gap:8px;
+  font-weight:600;font-size:.92rem;color:#2d1f3d;text-decoration:none;
+  border-bottom:2px solid #e8590c;padding-bottom:2px;transition:gap .2s}
+.bs-viewall:hover{gap:12px}
+/* keep the link from overlapping the centred text on smaller screens */
+@media(max-width:1100px){
+  .bs-viewall{position:static;display:flex;justify-content:center;width:max-content;margin:20px auto 0}
+}
+/* ---------- destination card carousel ---------- */
+.dc-wrap{position:relative;margin:4px 0 22px}
+.dest-chips.dc-track{display:flex;flex-wrap:nowrap;gap:14px;overflow-x:auto;margin:0;
+  padding:6px 2px 10px;scroll-snap-type:x proximity;scroll-behavior:smooth;scrollbar-width:none}
+.dc-track::-webkit-scrollbar{display:none}
+
+.dest-chip.dest-card{flex:0 0 190px;scroll-snap-align:start;display:flex;flex-direction:column;
+  padding:0;border-radius:14px;overflow:hidden;text-align:left;background:#fff;
+  border:2px solid transparent;box-shadow:0 4px 14px rgba(0,0,0,.1);
+  transition:transform .2s,box-shadow .2s,border-color .2s}
+.dest-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.16)}
+.dest-card.is-active{background:#fff;color:inherit;border-color:#e8590c}
+
+.dc-img{display:block;height:100px;background:#ddd;overflow:hidden}
+.dc-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
+.dest-card:hover .dc-img img{transform:scale(1.08)}
+.dc-all{display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff;
+  background:linear-gradient(135deg,#2d1f3d,#e8590c)}
+
+.dc-info{display:flex;flex-direction:column;gap:2px;padding:10px 12px}
+.dc-info strong{font-size:.95rem;color:#2d1f3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-info small{font-size:.78rem;opacity:.65}
+.dest-card.is-active .dc-info strong{color:#e8590c}
+
+.dc-arrow{position:absolute;top:42%;transform:translateY(-50%);z-index:2;width:38px;height:38px;
+  border-radius:50%;border:0;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+.dc-prev{left:-12px}.dc-next{right:-12px}
+.dc-arrow[hidden]{display:none}
+
+@media(max-width:600px){
+  .dest-chip.dest-card{flex-basis:150px}
+  .dc-img{height:84px}
+  .dc-arrow{display:none}
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* ---------- Destination chips: drive the existing filter ---------- */
+    var chips  = document.querySelectorAll('#destChips .dest-chip');
+    var search = document.getElementById('destinationSearch');
+
+    function markChip(value) {
+        var v = (value || '').trim().toLowerCase();
+        chips.forEach(function (c) {
+            c.classList.toggle('is-active', c.dataset.dest.toLowerCase() === v);
+        });
+    }
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            if (!search) return;
+            search.value = chip.dataset.dest;
+            search.dispatchEvent(new Event('input', { bubbles: true }));  // triggers app.js filter
+            markChip(chip.dataset.dest);
+            document.getElementById('itineraryGrid')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+    if (search) search.addEventListener('input', function () { markChip(search.value); });
+    ['resetFilters', 'resetFiltersEmpty'].forEach(function (id) {
+        document.getElementById(id)?.addEventListener('click', function () { markChip(''); });
+    });
+    
+    /* ---------- Destination card carousel ---------- */
+var dcTrack = document.getElementById('destChips');
+if (dcTrack) {
+    var dcPrev = document.querySelector('.dc-prev');
+    var dcNext = document.querySelector('.dc-next');
+    var dcStep = function () { return Math.max(200, dcTrack.clientWidth * 0.8); };
+
+    function dcArrows() {
+        var max = dcTrack.scrollWidth - dcTrack.clientWidth - 4;
+        dcPrev.hidden = dcTrack.scrollLeft <= 4;
+        dcNext.hidden = dcTrack.scrollLeft >= max;
+    }
+    dcPrev.addEventListener('click', function () { dcTrack.scrollBy({ left: -dcStep(), behavior: 'smooth' }); });
+    dcNext.addEventListener('click', function () { dcTrack.scrollBy({ left:  dcStep(), behavior: 'smooth' }); });
+    dcTrack.addEventListener('scroll', function () { requestAnimationFrame(dcArrows); }, { passive: true });
+    window.addEventListener('resize', dcArrows);
+    dcArrows();
+
+    // keep the selected card visible
+    dcTrack.addEventListener('click', function (e) {
+        var card = e.target.closest('.dest-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+}
+    /* ---------- Best-seller carousel ---------- */
+    var track = document.getElementById('bsTrack');
+    if (!track) return;
+    var cards = track.querySelectorAll('.bs-card');
+    var dots  = document.getElementById('bsDots');
+    var root  = document.getElementById('bsCarousel');
+    var timer;
+
+    function perView() { return Math.max(1, Math.round(track.clientWidth / cards[0].getBoundingClientRect().width)); }
+    function step()    { return cards[0].getBoundingClientRect().width + 20; }
+    function pages()   { return Math.max(1, cards.length - perView() + 1); }
+
+    function buildDots() {
+        dots.innerHTML = '';
+        for (var i = 0; i < pages(); i++) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('aria-label', 'Slide ' + (i + 1));
+            (function (idx) { b.addEventListener('click', function () { go(idx); restart(); }); })(i);
+            dots.appendChild(b);
+        }
+        sync();
+    }
+    function sync() {
+        var idx = Math.round(track.scrollLeft / step());
+        dots.querySelectorAll('button').forEach(function (d, i) { d.classList.toggle('on', i === idx); });
+    }
+    function go(i)  { track.scrollTo({ left: i * step(), behavior: 'smooth' }); }
+    function next() {
+        var atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+        atEnd ? go(0) : track.scrollBy({ left: step(), behavior: 'smooth' });
+    }
+    function prev() {
+        track.scrollLeft <= 4 ? go(pages() - 1) : track.scrollBy({ left: -step(), behavior: 'smooth' });
+    }
+    function start()   { timer = setInterval(next, 4500); }
+    function stop()    { clearInterval(timer); }
+    function restart() { stop(); start(); }
+
+    root.querySelector('.bs-next').addEventListener('click', function () { next(); restart(); });
+    root.querySelector('.bs-prev').addEventListener('click', function () { prev(); restart(); });
+    track.addEventListener('scroll', function () { window.requestAnimationFrame(sync); }, { passive: true });
+    root.addEventListener('mouseenter', stop);
+    root.addEventListener('mouseleave', start);
+    root.addEventListener('touchstart', stop, { passive: true });
+    root.addEventListener('touchend', start, { passive: true });
+    window.addEventListener('resize', buildDots);
+
+    buildDots();
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) start();
+});
+</script>
 <script src="carousel-extras.js" defer></script>
 
 </body>

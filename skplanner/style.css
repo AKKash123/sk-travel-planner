@@ -1,9 +1,6 @@
 /* ============================================
    SK Travel Planner — Sunset Views Theme
    ============================================ */
-
-
-
 :root {
     /* ---- Sunset Color Palette ---- */
     --primary: #D96C3F;
@@ -38,6 +35,8 @@
     --radius-sm: 8px;
 
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --float-gap: 16px;          /* space from screen edges */
+    --safe-bottom: 0px; 
 }
 
 
@@ -107,262 +106,47 @@ img {
     padding: 0 20px;
 }
 
-/* =========================================================
-   carousel-extras.css
-   Hero carousel • price range slider • star ratings
-   Load AFTER style.css and extra.css
-========================================================= */
+/* ============================================================
+   PREMIUM TOURISM HERO
+   Organic Curve • Warm Sunset • Cool Nature
+============================================================ */
 
-/* ---------- HERO CAROUSEL ---------- */
-.hero.hero-carousel {
+.hero {
     position: relative;
     isolation: isolate;
-    display: flex;
-    align-items: center;
-    min-height: clamp(520px, 80vh, 760px);
-    padding: 0 !important;
-    background: #1c1526;
     overflow: hidden;
-}
-.hero.hero-carousel::before,
-.hero.hero-carousel::after { display: none !important; }
 
-.hc-track { position: absolute; inset: 0; z-index: 0; }
+    min-height: 680px;
+    padding: 110px 0 170px;
 
-.hc-slide {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 1.1s ease, visibility 0s linear 1.1s;
-}
-.hc-slide.is-active {
-    opacity: 1;
-    visibility: visible;
-    z-index: 1;
-    transition: opacity 1.1s ease;
-}
-.hc-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    opacity: 0;
-    transform: scale(1.07);
-    transition: opacity .7s ease, transform 8s ease-out;
-}
-.hc-slide img.is-loaded { opacity: 1; }
-.hc-slide.is-active img { transform: scale(1); }
+    display: flex;
+    align-items: center;
 
-.hc-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
+    color: #ffffff;
+
     background:
-        linear-gradient(90deg, rgba(25,18,35,.80) 0%, rgba(25,18,35,.48) 48%, rgba(25,18,35,.12) 100%),
-        linear-gradient(0deg, rgba(25,18,35,.65) 0%, transparent 42%);
-}
+        radial-gradient(
+            circle at 15% 25%,
+            rgba(255, 190, 111, 0.45),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 85% 30%,
+            rgba(82, 177, 166, 0.35),
+            transparent 32%
+        ),
+        linear-gradient(
+            125deg,
+            #174e54 0%,
+            #217477 42%,
+            #4b9b8c 68%,
+            #f0a263 120%
+        );
 
-.hero.hero-carousel .hc-inner {
-    position: relative;
-    z-index: 5;
-    width: 100%;
-    padding-top: clamp(70px, 11vh, 130px);
-    padding-bottom: clamp(120px, 16vh, 170px);
-}
-.hero.hero-carousel .hero-content { max-width: 720px; }
-.hero.hero-carousel .hero-actions { justify-content: flex-start; }
+    border-radius: 0 0 55% 18% / 0 0 14% 8%;
 
-/* ---------- PRICE RANGE SLIDER ---------- */
-@media (min-width: 769px) {
-    .filter-controls { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; }
-}
-
-.price-group { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.price-group > label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 12px;
-    font-weight: 800;
-    color: #53706e;
-    text-transform: uppercase;
-    letter-spacing: .7px;
-}
-.price-group .ps-value {
-    text-transform: none;
-    letter-spacing: 0;
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--primary-dark);
-    background: #fff;
-    border: 1px solid var(--border);
-    padding: 3px 12px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-.price-slider {
-    --lo: 0%;
-    --hi: 100%;
-    position: relative;
-    height: 48px;
-    padding: 0 12px;
-    background: rgba(255,255,255,.88);
-    border: 1px solid #dce7e2;
-    border-radius: 13px;
-}
-.price-slider .ps-track {
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    top: 50%;
-    height: 6px;
-    margin-top: -3px;
-    border-radius: 999px;
-    background: #e7ddd2;
-}
-.price-slider .ps-fill {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: var(--lo);
-    right: calc(100% - var(--hi));
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--accent), var(--primary));
-}
-/* the two range inputs sit on top of each other */
-.price-slider input[type="range"] {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: none;
-    box-shadow: none;
-    transform: none;
-    -webkit-appearance: none;
-    appearance: none;
-    pointer-events: none;
-    outline: none;
-}
-.price-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 100%; }
-.price-slider input[type="range"]::-moz-range-track { background: transparent; }
-.price-slider input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    pointer-events: auto;
-    width: 24px;
-    height: 24px;
-    margin-top: 11px;
-    border-radius: 50%;
-    cursor: grab;
-    background: #fff;
-    border: 3px solid var(--primary);
-    box-shadow: 0 3px 10px rgba(73,43,35,.25);
-    transition: transform .15s ease;
-}
-.price-slider input[type="range"]::-moz-range-thumb {
-    pointer-events: auto;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    cursor: grab;
-    background: #fff;
-    border: 3px solid var(--primary);
-    box-shadow: 0 3px 10px rgba(73,43,35,.25);
-}
-.price-slider input[type="range"]:active::-webkit-slider-thumb { cursor: grabbing; transform: scale(1.12); }
-.price-slider input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(217,108,63,.3); }
-.price-slider input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(217,108,63,.3); }
-.ps-scale {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 4px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-}
-
-/* ---------- RATINGS ---------- */
-.rating-pill {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1;
-    color: #3b2a1a;
-    background: rgba(255,255,255,.94);
-    box-shadow: 0 4px 12px rgba(0,0,0,.18);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-}
-.rating-pill i { color: #F4A81D; font-size: 12px; }
-.rating-pill em { font-style: normal; font-weight: 600; color: var(--text-muted); }
-.rating-pill.is-new i { color: #b9aea4; }
-.rating-pill.is-bump { animation: pillBump .5s ease; }
-@keyframes pillBump { 40% { transform: scale(1.18); } }
-
-.rate-box {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    margin: -4px 0 18px;
-}
-.rate-stars { display: inline-flex; gap: 2px; }
-.rate-star {
-    padding: 4px;
-    border: 0;
-    background: none;
-    cursor: pointer;
-    font-size: 22px;
-    line-height: 1;
-    color: #d9cfc4;
-    transition: color .15s ease, transform .15s ease;
-    -webkit-tap-highlight-color: transparent;
-}
-.rate-star.on { color: #F4A81D; }
-.rate-star:hover { transform: scale(1.18); }
-.rate-star:active { transform: scale(.9); }
-.rate-star:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
-.rate-star.pop { animation: starPop .4s ease; }
-@keyframes starPop { 50% { transform: scale(1.45) rotate(-8deg); } }
-.rate-box.is-busy { opacity: .6; pointer-events: none; }
-.rate-hint { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-.rate-hint.is-mine { color: var(--success); }
-
-.rate-toast {
-    position: fixed;
-    left: 50%;
-    bottom: 96px;
-    z-index: 9999;
-    transform: translate(-50%, 20px);
-    opacity: 0;
-    pointer-events: none;
-    padding: 11px 20px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    background: var(--dark, #29213A);
-    box-shadow: var(--shadow-lg);
-    transition: opacity .3s ease, transform .3s ease;
-}
-.rate-toast.show { opacity: 1; transform: translate(-50%, 0); }
-.rate-toast.error { background: var(--danger, #D94B4B); 
+    box-shadow:
+        0 25px 60px rgba(31, 83, 80, 0.16);
 }
 
 
@@ -992,12 +776,12 @@ img {
     width: 40px;
     height: 40px;
 
-    background:
-        linear-gradient(
-            135deg,
-            var(--accent),
-            var(--primary)
-        );
+    .icon-box {
+      background:
+        linear-gradient(135deg, rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.15)),
+        linear-gradient(135deg, var(--accent), var(--primary));
+      color: #fff;
+    }
 
     border-radius: 10px;
 
@@ -1044,6 +828,7 @@ img {
     box-shadow:
         inset 0 -2px 0 var(--accent);
 }
+
 
 
 /* ============================================
@@ -2640,13 +2425,13 @@ Hero scene
 .admin-sidebar-brand .brand-icon {
     width: 36px;
     height: 36px;
-
-    background:
-        linear-gradient(
-            135deg,
-            var(--accent),
-            var(--primary)
-        );
+    
+    .icon-box {
+      background:
+        linear-gradient(135deg, rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.15)),
+        linear-gradient(135deg, var(--accent), var(--primary));
+      color: #fff;
+    }
 
     border-radius: 8px;
 
@@ -5394,7 +5179,7 @@ textarea {
     }
 
     .floating-whatsapp {
-        right: 10px;
+        right: auto;
         width: 49px;
         height: 49px;
         min-height: 49px;
@@ -5537,8 +5322,9 @@ textarea {
 
 /* ===== Small phones (≤ 360px) =====/ ===== */
 @media screen and (max-width: 360px) {
-    .floating-whatsapp {
-        right: 8px;
+     .floating-whatsapp {
+        left: 8px;
+        right: auto;       /* cancels the right value from other rules */
         width: 44px;
         height: 44px;
         min-height: 44px;
@@ -5787,6 +5573,7 @@ body.chatbot-open .floating-whatsapp {
     .chatbot-toggle {
         width: 44px;
         height: 44px;
+        margin-bottom: 62px;
     }
 }
 
@@ -6133,34 +5920,46 @@ body.chatbot-open .floating-whatsapp {
     }
 }
 
-/* iPhone SE with iOS safe-area (home indicator) */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-
-    @media screen and (width: 375px) and (height: 667px) {
-        .floating-whatsapp {
-            bottom: calc(10px + env(safe-area-inset-bottom));
-        }
-
-        .chatbot {
-            bottom: calc(66px + env(safe-area-inset-bottom));
-        }
-
-        .chatbot-window {
-            height: calc(440px - env(safe-area-inset-bottom));
-            max-height: calc(440px - env(safe-area-inset-bottom));
-            min-height: calc(440px - env(safe-area-inset-bottom));
-        }
+    :root {
+        --safe-bottom: env(safe-area-inset-bottom);
     }
 }
+
+.floating-whatsapp {
+    right: calc(var(--float-gap) + env(safe-area-inset-right, 0px));
+    bottom: calc(var(--float-gap) + var(--safe-bottom));
+    overflow: visible;          /* stops the notification badge being clipped */
+}
+
+.chatbot {
+    right: calc(var(--float-gap) + env(safe-area-inset-right, 0px));
+    bottom: calc(72px + var(--safe-bottom));   /* sits above the WhatsApp button */
+}
+
+.chatbot-window {
+    height: min(440px, calc(100dvh - 72px - var(--safe-bottom) - 24px));
+    max-height: min(440px, calc(100dvh - 72px - var(--safe-bottom) - 24px));
+    min-height: 0;
+}
+
+/* Fallback for browsers without dvh support */
+@supports not (height: 100dvh) {
+    .chatbot-window {
+        height: min(440px, calc(100vh - 72px - var(--safe-bottom) - 24px));
+        max-height: min(440px, calc(100vh - 72px - var(--safe-bottom) - 24px));
+    }
+}
+
 /* ============================================================
-   RESPONSIVE — Landscape Short Screens (any width, height ≤ 500px)
+   RESPONSIVE — Landscape short screens (height ≤ 500px)
    ============================================================ */
 
 @media screen and (orientation: landscape) and (max-height: 500px) {
 
     .floating-whatsapp {
-        right: 8px;
-        bottom: 8px;
+        right: calc(10px + env(safe-area-inset-right, 0px));
+        bottom: calc(10px + var(--safe-bottom));
         width: 42px;
         height: 42px;
     }
@@ -6170,9 +5969,9 @@ body.chatbot-open .floating-whatsapp {
     }
 
     .chatbot {
-        right: 8px;
-        /* 8 + 42 + 8 = 58px */
-        bottom: 58px;
+        right: calc(10px + env(safe-area-inset-right, 0px));
+        /* 10 + 42 + 8 = 60px */
+        bottom: calc(60px + var(--safe-bottom));
     }
 
     .chatbot-toggle {
@@ -6182,17 +5981,13 @@ body.chatbot-open .floating-whatsapp {
     }
 
     .chatbot-window {
-        /* 44 + 8 = 52px above chatbot position */
         bottom: 52px;
-        width: min(340px, calc(100vw - 16px));
+        width: min(340px, calc(100vw - 20px));
         max-width: 340px;
 
-        /*
-         * Window at: 58px + 52px = 110px from viewport bottom
-         * Available = 100vh - 110px
-         */
-        height: calc(100vh - 110px);
-        max-height: calc(100vh - 110px);
+        /* Window bottom edge = 60px + 52px = 112px from viewport bottom */
+        height: calc(100dvh - 112px - var(--safe-bottom));
+        max-height: calc(100dvh - 112px - var(--safe-bottom));
         min-height: 180px;
 
         border-radius: 14px;
@@ -6203,4 +5998,234 @@ body.chatbot-open .floating-whatsapp {
         height: 16px;
         font-size: 9px;
     }
+}
+/* ============================================================
+   TABLET PORTRAIT / LARGE PHONES (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+
+    .section {
+        padding: 48px 0;
+    }
+
+    .navbar-inner {
+        min-height: 60px;
+    }
+
+    .navbar-nav {
+        gap: 2px;
+    }
+
+    .navbar-nav a {
+        padding: 7px 9px;
+        font-size: 13px;
+    }
+
+    .hero {
+        min-height: 440px;
+    }
+
+    .hero-content {
+        max-width: 100%;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(30px, 8vw, 38px);
+    }
+
+    .hero-content p {
+        font-size: 16px;
+    }
+
+    .card-grid {
+        grid-template-columns: minmax(0, 1fr);   /* single column */
+        gap: 18px;
+    }
+
+    .itin-card-img {
+        height: 190px;
+    }
+
+    .detail-hero {
+        height: 280px;
+    }
+
+    .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+    }
+
+    .footer-grid > :first-child {
+        grid-column: 1 / -1;                     /* brand block spans full width */
+    }
+
+    /* Admin: sidebar becomes an off-canvas drawer */
+    .admin-sidebar {
+        width: 240px;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 1000;
+    }
+
+    .admin-sidebar.open {                        /* toggle this class with JS */
+        transform: translateX(0);
+    }
+
+    .admin-main {
+        margin-left: 0;
+    }
+
+    .admin-content {
+        padding: 16px;
+    }
+
+    .admin-topbar {
+        padding: 12px 16px;
+    }
+
+    .form-card {
+        padding: 20px;
+    }
+
+    /* Tables scroll sideways instead of breaking the layout */
+    .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .whatsapp-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+    }
+}
+
+/* ============================================================
+   PHONES (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+
+    .section {
+        padding: 40px 0;
+    }
+
+    .navbar-inner {
+        min-height: 56px;
+    }
+
+    .navbar-nav a {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .hero {
+        min-height: 400px;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(28px, 9vw, 34px);
+        line-height: 1.15;
+    }
+
+    .hero-content p {
+        font-size: 15px;
+    }
+
+    .card-grid {
+        gap: 16px;
+    }
+
+    .itin-card-img {
+        height: 170px;
+    }
+
+    .detail-hero {
+        height: 230px;
+    }
+
+    .footer-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+/* iPhone SE and small phones */
+@media (max-width: 400px) {
+
+    .navbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;                 /* guaranteed space between brand and links */
+        padding-left: 12px;
+        padding-right: 12px;
+        flex-wrap: nowrap;
+    }
+
+    .navbar-brand {
+        flex: 1 1 0;               /* takes only the leftover space */
+        min-width: 0;              /* lets it shrink instead of overflowing */
+        gap: 6px;
+        font-size: 14px;
+        line-height: 1.15;
+        white-space: normal;       /* wraps to "SK Travel / Planner" */
+        overflow: hidden;
+    }
+
+    .navbar-brand img {
+        width: 30px;
+        height: 30px;
+        flex-shrink: 0;
+    }
+
+    .navbar-nav {
+        flex: 0 0 auto;            /* links keep their size */
+        gap: 0;
+        white-space: nowrap;
+    }
+
+    .navbar-nav a {
+        padding: 5px 6px;
+        font-size: 11px;
+        gap: 3px;
+    }
+
+    .navbar-nav a i,
+    .navbar-nav a svg {
+        font-size: 10px;
+    }
+}
+
+/* 360px and narrower */
+@media (max-width: 360px) {
+
+    .navbar-inner {
+        gap: 6px;
+    }
+
+    .navbar-brand {
+        font-size: 12.5px;
+    }
+
+    .navbar-brand img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .navbar-nav a {
+        padding: 5px;
+        font-size: 10.5px;
+    }
+
+    .navbar-nav a i,
+    .navbar-nav a svg {
+        display: none;
+    }
+}
 }
