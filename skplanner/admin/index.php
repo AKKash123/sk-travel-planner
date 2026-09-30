@@ -7,7 +7,7 @@ if (isAdmin()) {
     exit;
 }
 
- $error = '';
+$error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF
@@ -46,18 +46,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login — <?= e(APP_NAME) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-        <link
-            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-        >
-        <link rel="stylesheet" href="../style.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-        <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/favicon-16.png">
-        <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
-        <link rel="icon" href="../assets/icons/favicon.ico">
-        <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/apple-touch-icon.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/favicon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+    <link rel="icon" href="../assets/icons/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/apple-touch-icon.png">
+
+    <style>
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper .form-control {
+            padding-right: 44px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .toggle-password {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #888;
+            font-size: 16px;
+            padding: 4px;
+            line-height: 1;
+        }
+        .toggle-password:hover,
+        .toggle-password:focus {
+            color: #333;
+            outline: none;
+        }
+    </style>
 </head>
 <body class="login-page">
 
@@ -77,12 +106,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST" autocomplete="off">
         <?= csrfField() ?>
         <div class="form-group">
-            <label><i class="fas fa-user"></i> Username</label>
-            <input type="text" name="username" class="form-control" placeholder="Enter username" required autofocus>
+            <label for="username"><i class="fas fa-user"></i> Username</label>
+            <input type="text" name="username" id="username" class="form-control" placeholder="Enter username" required autofocus>
         </div>
         <div class="form-group">
-            <label><i class="fas fa-lock"></i> Password</label>
-            <input type="password" name="password" class="form-control" placeholder="Enter password" required>
+            <label for="password"><i class="fas fa-lock"></i> Password</label>
+            <div class="password-wrapper">
+                <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+                <button type="button" class="toggle-password" id="togglePassword" aria-label="Show password" title="Show password">
+                    <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                </button>
+            </div>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;">
             <i class="fas fa-sign-in-alt"></i> Sign In
@@ -93,6 +127,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <a href="../index.php" style="font-size:14px;"><i class="fas fa-arrow-left"></i> Back to Website</a>
     </div>
 </div>
+
+<script>
+document.getElementById('togglePassword').addEventListener('click', function () {
+    var input = document.getElementById('password');
+    var icon  = document.getElementById('togglePasswordIcon');
+    var show  = input.type === 'password';
+
+    input.type = show ? 'text' : 'password';
+    icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+    this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    this.title = show ? 'Hide password' : 'Show password';
+    input.focus();
+});
+</script>
 
 </body>
 </html>

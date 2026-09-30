@@ -1,9 +1,6 @@
 /* ============================================
    SK Travel Planner — Sunset Views Theme
    ============================================ */
-
-
-
 :root {
     /* ---- Sunset Color Palette ---- */
     --primary: #D96C3F;
@@ -38,6 +35,8 @@
     --radius-sm: 8px;
 
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --float-gap: 16px;          /* space from screen edges */
+    --safe-bottom: 0px; 
 }
 
 
@@ -777,12 +776,12 @@ img {
     width: 40px;
     height: 40px;
 
-    background:
-        linear-gradient(
-            135deg,
-            var(--accent),
-            var(--primary)
-        );
+    .icon-box {
+      background:
+        linear-gradient(135deg, rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.15)),
+        linear-gradient(135deg, var(--accent), var(--primary));
+      color: #fff;
+    }
 
     border-radius: 10px;
 
@@ -829,6 +828,7 @@ img {
     box-shadow:
         inset 0 -2px 0 var(--accent);
 }
+
 
 
 /* ============================================
@@ -2425,13 +2425,13 @@ Hero scene
 .admin-sidebar-brand .brand-icon {
     width: 36px;
     height: 36px;
-
-    background:
-        linear-gradient(
-            135deg,
-            var(--accent),
-            var(--primary)
-        );
+    
+    .icon-box {
+      background:
+        linear-gradient(135deg, rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.15)),
+        linear-gradient(135deg, var(--accent), var(--primary));
+      color: #fff;
+    }
 
     border-radius: 8px;
 
@@ -5179,7 +5179,7 @@ textarea {
     }
 
     .floating-whatsapp {
-        right: 10px;
+        right: auto;
         width: 49px;
         height: 49px;
         min-height: 49px;
@@ -5322,8 +5322,9 @@ textarea {
 
 /* ===== Small phones (≤ 360px) =====/ ===== */
 @media screen and (max-width: 360px) {
-    .floating-whatsapp {
-        right: 8px;
+     .floating-whatsapp {
+        left: 8px;
+        right: auto;       /* cancels the right value from other rules */
         width: 44px;
         height: 44px;
         min-height: 44px;
@@ -5572,6 +5573,7 @@ body.chatbot-open .floating-whatsapp {
     .chatbot-toggle {
         width: 44px;
         height: 44px;
+        margin-bottom: 62px;
     }
 }
 
@@ -5918,34 +5920,46 @@ body.chatbot-open .floating-whatsapp {
     }
 }
 
-/* iPhone SE with iOS safe-area (home indicator) */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-
-    @media screen and (width: 375px) and (height: 667px) {
-        .floating-whatsapp {
-            bottom: calc(10px + env(safe-area-inset-bottom));
-        }
-
-        .chatbot {
-            bottom: calc(66px + env(safe-area-inset-bottom));
-        }
-
-        .chatbot-window {
-            height: calc(440px - env(safe-area-inset-bottom));
-            max-height: calc(440px - env(safe-area-inset-bottom));
-            min-height: calc(440px - env(safe-area-inset-bottom));
-        }
+    :root {
+        --safe-bottom: env(safe-area-inset-bottom);
     }
 }
+
+.floating-whatsapp {
+    right: calc(var(--float-gap) + env(safe-area-inset-right, 0px));
+    bottom: calc(var(--float-gap) + var(--safe-bottom));
+    overflow: visible;          /* stops the notification badge being clipped */
+}
+
+.chatbot {
+    right: calc(var(--float-gap) + env(safe-area-inset-right, 0px));
+    bottom: calc(72px + var(--safe-bottom));   /* sits above the WhatsApp button */
+}
+
+.chatbot-window {
+    height: min(440px, calc(100dvh - 72px - var(--safe-bottom) - 24px));
+    max-height: min(440px, calc(100dvh - 72px - var(--safe-bottom) - 24px));
+    min-height: 0;
+}
+
+/* Fallback for browsers without dvh support */
+@supports not (height: 100dvh) {
+    .chatbot-window {
+        height: min(440px, calc(100vh - 72px - var(--safe-bottom) - 24px));
+        max-height: min(440px, calc(100vh - 72px - var(--safe-bottom) - 24px));
+    }
+}
+
 /* ============================================================
-   RESPONSIVE — Landscape Short Screens (any width, height ≤ 500px)
+   RESPONSIVE — Landscape short screens (height ≤ 500px)
    ============================================================ */
 
 @media screen and (orientation: landscape) and (max-height: 500px) {
 
     .floating-whatsapp {
-        right: 8px;
-        bottom: 8px;
+        right: calc(10px + env(safe-area-inset-right, 0px));
+        bottom: calc(10px + var(--safe-bottom));
         width: 42px;
         height: 42px;
     }
@@ -5955,9 +5969,9 @@ body.chatbot-open .floating-whatsapp {
     }
 
     .chatbot {
-        right: 8px;
-        /* 8 + 42 + 8 = 58px */
-        bottom: 58px;
+        right: calc(10px + env(safe-area-inset-right, 0px));
+        /* 10 + 42 + 8 = 60px */
+        bottom: calc(60px + var(--safe-bottom));
     }
 
     .chatbot-toggle {
@@ -5967,17 +5981,13 @@ body.chatbot-open .floating-whatsapp {
     }
 
     .chatbot-window {
-        /* 44 + 8 = 52px above chatbot position */
         bottom: 52px;
-        width: min(340px, calc(100vw - 16px));
+        width: min(340px, calc(100vw - 20px));
         max-width: 340px;
 
-        /*
-         * Window at: 58px + 52px = 110px from viewport bottom
-         * Available = 100vh - 110px
-         */
-        height: calc(100vh - 110px);
-        max-height: calc(100vh - 110px);
+        /* Window bottom edge = 60px + 52px = 112px from viewport bottom */
+        height: calc(100dvh - 112px - var(--safe-bottom));
+        max-height: calc(100dvh - 112px - var(--safe-bottom));
         min-height: 180px;
 
         border-radius: 14px;
@@ -5989,30 +5999,233 @@ body.chatbot-open .floating-whatsapp {
         font-size: 9px;
     }
 }
+/* ============================================================
+   TABLET PORTRAIT / LARGE PHONES (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
 
-@media (max-width: 600px) {
-    .navbar-brand {
-        padding-left: 0;
+    .section {
+        padding: 48px 0;
+    }
+
+    .navbar-inner {
+        min-height: 60px;
+    }
+
+    .navbar-nav {
+        gap: 2px;
+    }
+
+    .navbar-nav a {
+        padding: 7px 9px;
+        font-size: 13px;
+    }
+
+    .hero {
+        min-height: 440px;
+    }
+
+    .hero-content {
+        max-width: 100%;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(30px, 8vw, 38px);
+    }
+
+    .hero-content p {
+        font-size: 16px;
+    }
+
+    .card-grid {
+        grid-template-columns: minmax(0, 1fr);   /* single column */
+        gap: 18px;
+    }
+
+    .itin-card-img {
+        height: 190px;
+    }
+
+    .detail-hero {
+        height: 280px;
+    }
+
+    .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+    }
+
+    .footer-grid > :first-child {
+        grid-column: 1 / -1;                     /* brand block spans full width */
+    }
+
+    /* Admin: sidebar becomes an off-canvas drawer */
+    .admin-sidebar {
+        width: 240px;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 1000;
+    }
+
+    .admin-sidebar.open {                        /* toggle this class with JS */
+        transform: translateX(0);
+    }
+
+    .admin-main {
+        margin-left: 0;
+    }
+
+    .admin-content {
+        padding: 16px;
+    }
+
+    .admin-topbar {
+        padding: 12px 16px;
+    }
+
+    .form-card {
+        padding: 20px;
+    }
+
+    /* Tables scroll sideways instead of breaking the layout */
+    .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .whatsapp-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
     }
 }
 
-@media (max-width: 380px) {
+/* ============================================================
+   PHONES (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+
+    .section {
+        padding: 40px 0;
+    }
+
     .navbar-inner {
-        height: auto;
-        min-height: 58px;
-        flex-wrap: wrap;
-        row-gap: 2px;
-        padding-top: 8px;
-        padding-bottom: 8px;
+        min-height: 56px;
     }
 
-    .navbar-brand,
-    .navbar-nav {
-        flex: 1 1 100%;
+    .navbar-nav a {
+        padding: 6px 8px;
+        font-size: 12px;
     }
 
-    .navbar-nav {
+    .hero {
+        min-height: 400px;
+    }
+
+    .hero-content h1 {
+        font-size: clamp(28px, 9vw, 34px);
+        line-height: 1.15;
+    }
+
+    .hero-content p {
+        font-size: 15px;
+    }
+
+    .card-grid {
+        gap: 16px;
+    }
+
+    .itin-card-img {
+        height: 170px;
+    }
+
+    .detail-hero {
+        height: 230px;
+    }
+
+    .footer-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+/* iPhone SE and small phones */
+@media (max-width: 400px) {
+
+    .navbar-inner {
+        display: flex;
+        align-items: center;
         justify-content: space-between;
-        overflow: visible;
+        gap: 10px;                 /* guaranteed space between brand and links */
+        padding-left: 12px;
+        padding-right: 12px;
+        flex-wrap: nowrap;
     }
+
+    .navbar-brand {
+        flex: 1 1 0;               /* takes only the leftover space */
+        min-width: 0;              /* lets it shrink instead of overflowing */
+        gap: 6px;
+        font-size: 14px;
+        line-height: 1.15;
+        white-space: normal;       /* wraps to "SK Travel / Planner" */
+        overflow: hidden;
+    }
+
+    .navbar-brand img {
+        width: 30px;
+        height: 30px;
+        flex-shrink: 0;
+    }
+
+    .navbar-nav {
+        flex: 0 0 auto;            /* links keep their size */
+        gap: 0;
+        white-space: nowrap;
+    }
+
+    .navbar-nav a {
+        padding: 5px 6px;
+        font-size: 11px;
+        gap: 3px;
+    }
+
+    .navbar-nav a i,
+    .navbar-nav a svg {
+        font-size: 10px;
+    }
+}
+
+/* 360px and narrower */
+@media (max-width: 360px) {
+
+    .navbar-inner {
+        gap: 6px;
+    }
+
+    .navbar-brand {
+        font-size: 12.5px;
+    }
+
+    .navbar-brand img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .navbar-nav a {
+        padding: 5px;
+        font-size: 10.5px;
+    }
+
+    .navbar-nav a i,
+    .navbar-nav a svg {
+        display: none;
+    }
+}
 }

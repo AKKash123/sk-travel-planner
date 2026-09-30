@@ -1,6 +1,12 @@
 <?php
 // Shared admin sidebar fragment
- $current_page = basename($_SERVER['PHP_SELF']);
+$current_page = basename($_SERVER['PHP_SELF']);
+$sidebarPendingReviews = 0;
+if (isset($pdo)) {
+    try {
+        $sidebarPendingReviews = (int)$pdo->query("SELECT COUNT(*) FROM user_reviews WHERE status = 'pending'")->fetchColumn();
+    } catch (Throwable $e) {}
+}
 ?>
 <aside class="admin-sidebar">
     <div class="admin-sidebar-brand">
@@ -19,6 +25,14 @@
             </a>
         </li>
         <li>
+            <a href="reviews.php" class="<?= $current_page === 'reviews.php' ? 'active' : '' ?>">
+                <i class="fas fa-star"></i> User Reviews
+                <?php if ($sidebarPendingReviews > 0): ?>
+                    <span style="background:#E8912D;color:#fff;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700;margin-left:auto;"><?= $sidebarPendingReviews ?></span>
+                <?php endif; ?>
+            </a>
+        </li>
+        <li>
             <a href="backup.php" class="<?= $current_page === 'backup.php' ? 'active' : '' ?>">
                 <i class="fas fa-database"></i> DB Backup
             </a>
@@ -28,8 +42,8 @@
                 <i class="fas fa-globe"></i> View Website
             </a>
         </li>
-          <li>
-            <a href="change-password.php" class="<?= $current_page === 'backup.php' ? 'active' : '' ?>">
+        <li>
+            <a href="change-password.php" class="<?= $current_page === 'change-password.php' ? 'active' : '' ?>">
                 <i class="fas fa-key"></i> Password update
             </a>
         </li>

@@ -1,10 +1,183 @@
 <?php
-require_once 'config.php';
+// require_once 'config.php';
 
-// Fetch all active itineraries
-$stmt = $pdo->prepare("SELECT * FROM itineraries WHERE status = 1 ORDER BY created_at DESC");
+// // Fetch all active itineraries
+// $stmt = $pdo->prepare("SELECT * FROM itineraries WHERE status = 1 ORDER BY created_at DESC");
+// $stmt->execute();
+// $itineraries = $stmt->fetchAll();
+declare(strict_types=1);
+
+require_once __DIR__ . '/config.php';
+
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM itineraries
+     WHERE status = 1
+     ORDER BY created_at DESC"
+);
+
 $stmt->execute();
-$itineraries = $stmt->fetchAll();
+
+$itineraries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+// ---------------------------------------------------------
+// Ratings (table: itinerary_reviews — see reviews.sql)
+// Wrapped in try/catch so the page still works before the table exists
+// ---------------------------------------------------------
+$ratings = [];
+try {
+    $rs = $pdo->query(
+        "SELECT itinerary_id, ROUND(AVG(rating), 1) AS avg_rating, COUNT(*) AS total
+         FROM itinerary_reviews
+         GROUP BY itinerary_id"
+    );
+    foreach ($rs->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $ratings[(int)$r['itinerary_id']] = [
+            'avg'   => (float)$r['avg_rating'],
+            'count' => (int)$r['total'],
+        ];
+    }
+} catch (Throwable $e) {
+    error_log('Ratings unavailable: ' . $e->getMessage());
+}
+
+// ---------------------------------------------------------
+// Best 3 Approved User Reviews for "What Users Say" section
+// ---------------------------------------------------------
+$bestReviews = [];
+try {
+    $brStmt = $pdo->prepare(
+        "SELECT * FROM user_reviews 
+         WHERE status = 'approved' 
+         ORDER BY rating DESC, created_at DESC, id DESC 
+         LIMIT 3"
+    );
+    $brStmt->execute();
+    $bestReviews = $brStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    error_log('User reviews query failed: ' . $e->getMessage());
+}
+
+
+// ---------------------------------------------------------
+// Primary destinations (auto-built from the packages)
+// "Darjeeling, Sikkim" -> primary = "Darjeeling"
+// ---------------------------------------------------------
+$destCounts = [];
+foreach ($itineraries as $it) {
+    $primary = trim(explode(',', (string)$it['destination'])[0]);
+    if ($primary === '') continue;
+    $key = mb_strtolower($primary);
+    if (!isset($destCounts[$key])) {
+        $destCounts[$key] = [
+            'label' => $primary,
+            'count' => 0,
+            'image' => $it['image'],   // NEW: used by the destination cards
+        ];
+    }
+    $destCounts[$key]['count']++;
+}
+uasort($destCounts, static fn($a, $b) => $b['count'] <=> $a['count']);
+$primaryDestinations = array_slice($destCounts, 0, 8, true);
+
+
+// ---------------------------------------------------------
+// Best sellers
+// ---------------------------------------------------------
+$sales = []; // itinerary_id => number of bookings
+/* OPTIONAL: use real sales if you have such a table
+try {
+    $bs = $pdo->query("SELECT itinerary_id, COUNT(*) AS n FROM bookings GROUP BY itinerary_id");
+    foreach ($bs->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $sales[(int)$r['itinerary_id']] = (int)$r['n'];
+    }
+} catch (Throwable $e) { error_log('Sales unavailable: ' . $e->getMessage()); }
+*/
+$bestSellers = $itineraries;
+usort($bestSellers, static function ($a, $b) use ($ratings, $sales) {
+    $score = static function ($i) use ($ratings, $sales) {
+        $id = (int)$i['id'];
+        return ($sales[$id] ?? 0) * 100
+             + ($ratings[$id]['count'] ?? 0) * ($ratings[$id]['avg'] ?? 0);
+    };
+    return $score($b) <=> $score($a) ?: strcmp((string)$b['created_at'], (string)$a['created_at']);
+});
+$bestSellers = array_slice($bestSellers, 0, 8);
+// ---------------------------------------------------------
+// Price slider bounds come from the real package prices
+// ---------------------------------------------------------
+$allPrices = array_map(static fn($i) => (float)$i['price'], $itineraries);
+$priceMin  = $allPrices ? (int)(floor(min($allPrices) / 1000) * 1000) : 0;
+$priceMax  = $allPrices ? (int)(ceil(max($allPrices) / 1000) * 1000) : 50000;
+if ($priceMax <= $priceMin) {
+    $priceMax = $priceMin + 1000;
+}
+
+// ---------------------------------------------------------
+// Hero carousel — Incredible India (Unsplash photo IDs).
+// Swap any 'photo' for another Unsplash ID, or set 'url' to your
+// own image (e.g. 'assets/hero/goa.jpg'). A broken image is skipped
+// automatically. 'tint' is the colour shown while the photo loads.
+// ---------------------------------------------------------
+$heroSlides = [
+    // Darjeeling / Sikkim / Dooars (existing)
+    ['slug' => 'darjeeling-pine-forest', 'title' => 'Pine Forests of Darjeeling', 'state' => 'Darjeeling',   'tint' => '#2f4a3a', 'wiki' => 'Pine trees Darjeeling.jpg'],
+    ['slug' => 'yumthang-valley',        'title' => 'Yumthang Valley of Flowers', 'state' => 'North Sikkim', 'tint' => '#4a6a4a', 'wiki' => 'Yumthang Valley at North Sikkim, India 01.jpg'],
+    ['slug' => 'ghum-toy-train',         'title' => 'Toy Train at Ghum Station',  'state' => 'Ghum',         'tint' => '#3b4a5a', 'wiki' => 'A train of Darjeeling Himalayan Railway at Ghoom Station.jpg'],
+    ['slug' => 'kolakham-view',          'title' => 'Kolakham Viewpoint',         'state' => 'Kalimpong',    'tint' => '#3f6b55', 'wiki' => 'Kolakham view.jpg'],
+    ['slug' => 'north-sikkim-zero-point','title' => 'Zero Point, North Sikkim',   'state' => 'North Sikkim', 'tint' => '#5a6f85', 'wiki' => 'Zero Point, Sikkim.jpg'],
+    ['slug' => 'kurseong-tea-estates',   'title' => 'Kurseong Tea Estates',       'state' => 'Kurseong',     'tint' => '#3f6b45', 'wiki' => 'Tea estate in kurseong.jpg'],
+    ['slug' => 'dow-hill',               'title' => 'Dow Hill Forest',            'state' => 'Kurseong',     'tint' => '#2f4a35', 'wiki' => 'Dow hill Kurseong.jpg'],
+    ['slug' => 'kanchenjunga-view',      'title' => 'Kanchenjunga Panorama',      'state' => 'Darjeeling',   'tint' => '#5a6a80', 'wiki' => 'Darjeeling-panoramic.jpg'],
+    ['slug' => 'mirik-pine-road',        'title' => 'Pine Road to Mirik',         'state' => 'Mirik',        'tint' => '#2f4f3a', 'wiki' => 'A Route through Pine Forest.jpg'],
+    ['slug' => 'sumendu-lake',           'title' => 'Sumendu Lake',               'state' => 'Mirik',        'tint' => '#2d6f86', 'wiki' => 'Sumendu Lake, Mirik.jpg'],
+    ['slug' => 'dooars-tea-garden',      'title' => 'Tea Gardens of the Dooars',  'state' => 'Dooars',       'tint' => '#3a5a30', 'wiki' => 'Tea garden in dooars.jpg'],
+
+    // Arunachal Pradesh
+    ['slug' => 'tawang-monastery',       'title' => 'Tawang Monastery',           'state' => 'Arunachal Pradesh', 'tint' => '#6a4a2f', 'wiki' => 'Tawang Monastery (Tibetan Buddhist).jpg'],
+    ['slug' => 'ziro-valley',            'title' => 'Ziro Valley Paddy Fields',   'state' => 'Arunachal Pradesh', 'tint' => '#4a7a3a', 'wiki' => 'Ziro Valley.jpg'],
+
+    // Assam
+   ['slug' => 'sela-pass',              'title' => 'Sela Pass',                  'state' => 'Arunachal Pradesh', 'tint' => '#4a6a85', 'wiki' => 'Sela Pass, Arunachal Pradesh.jpg'],
+['slug' => 'kaziranga-rhino',        'title' => 'One-Horned Rhino, Kaziranga','state' => 'Assam',             'tint' => '#5a6a3a', 'wiki' => 'One-Horned Rhino at the Kaziranga National Park, Assam.jpg'],
+
+    ['slug' => 'majuli-island',          'title' => 'Majuli River Island',        'state' => 'Assam',             'tint' => '#3a6a70', 'wiki' => 'Majuli Island.jpg'],
+    ['slug' => 'assam-tea-garden',       'title' => 'Tea Gardens of Assam',       'state' => 'Assam',             'tint' => '#3f6b30', 'wiki' => 'Tea Garden at Indo-Bhutan Border at Darranga, Assam.jpg'],
+
+    // Goa
+    ['slug' => 'palolem-beach',          'title' => 'Palolem Beach',              'state' => 'Goa',               'tint' => '#2d7a8a', 'wiki' => 'Palolem Beach.jpg'],
+    ['slug' => 'basilica-bom-jesus',     'title' => 'Basilica of Bom Jesus',      'state' => 'Goa',               'tint' => '#8a5a3a', 'wiki' => 'Basilica of Bom Jesus.jpg'],
+    ['slug' => 'dudhsagar-falls',        'title' => 'Dudhsagar Falls',            'state' => 'Goa',               'tint' => '#3a5a4a', 'wiki' => 'Dudhsagar Falls.jpg'],
+];
+
+foreach ($heroSlides as &$hs) {
+    $hs['url'] = null;                       // local override
+    foreach (['jpg', 'jpeg', 'webp', 'png'] as $ext) {
+        if (is_file(__DIR__ . "/assets/hero/{$hs['slug']}.{$ext}")) {
+            $hs['url'] = "assets/hero/{$hs['slug']}.{$ext}";
+            break;
+        }
+    }
+}
+unset($hs);
+
+$heroSrc = static function (array $s, int $w): string {
+    if (!empty($s['url'])) {
+        return $s['url'];
+    }
+    // Wikimedia Commons resizes on the fly with ?width=
+    return 'https://commons.wikimedia.org/wiki/Special:FilePath/'
+         . rawurlencode(str_replace(' ', '_', $s['wiki']))
+         . '?width=' . $w;
+};
+$heroSrcset = static function (array $s) use ($heroSrc): string {
+    if (!empty($s['url'])) {
+        return '';
+    }
+    return implode(', ', array_map(static fn($w) => $heroSrc($s, $w) . ' ' . $w . 'w', [640, 1024, 1600]));
+};
+
 
 // WhatsApp number - country code + number, without + or spaces
 $whatsappNumber = '917810807552';
@@ -37,11 +210,147 @@ $appConfig = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- Primary SEO -->
+    <meta name="description" content="Plan your dream trip with SK Travel Planners – best travel agency for tour packages, custom itineraries, holiday packages, honeymoon packages, adventure tours & North Bengal trips. Expert-curated day-wise itineraries, handpicked stays and local experiences. Chat on WhatsApp to book now.">
+    <meta name="keywords" content="SKTravel, SK Travel Planners, tour packages, custom itineraries, holiday packages, trip planning, North Bengal tours, best travel agency, vacation packages, honeymoon packages, family tour packages, adventure tours, budget travel packages, luxury travel packages, group tour packages, weekend getaways, holiday destinations, travel deals, tour operators, travel consultants, vacation planning, Darjeeling tour package, Sikkim tour package, Kalimpong tour, Gangtok holiday, Siliguri travel agency, North East India tours, Bhutan tour package, Nepal travel package, customized travel packages, affordable tour packages, travel booking online, all inclusive tour packages, travel offers, tour and travel agency near me, best travel planners, holiday planners, trip advisors, travel services, hotel booking, cab rental service, hill station packages, beach holidays, wildlife tours, cultural tours, heritage tours, pilgrimage tours, corporate tour packages, student tour packages, solo travel packages, last minute travel deals, airport transfers, travel agency in Siliguri, North Bengal travel agents, West Bengal tour operators">
+    <meta name="author" content="SK Travel Planners">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="https://sktravelplanner.com/">
+    
 
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn previews) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SK Travel Planners">
+   <meta property="og:title" content="SK Travel Planners | Best Tour & Travel Agency – Holiday Packages & Custom Itineraries">
+    <meta property="og:description" content="Book affordable tour packages, custom itineraries & holiday deals with SK Travel Planners. Expert-curated trips to North Bengal, Sikkim, Darjeeling, Bhutan & more. WhatsApp us now!">
+    <meta property="og:url" content="https://sktravel-planners.com/">
+    <meta property="og:image" content="https://picsum.photos/seed/sktravel-og/1200/630.jpg">
+    <meta property="og:site_name" content="SK Travel Planners">
+    <meta property="og:image:alt" content="SK Travel Planners: curated travel itineraries">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SK Travel Planners | Best Tour & Travel Agency – Holiday Packages & Custom Itineraries">
+    <meta name="twitter:description" content="Book affordable tour packages, custom itineraries & holiday deals with SK Travel Planners. North Bengal, Sikkim, Darjeeling, Bhutan & more.">
+    <meta name="twitter:image" content="https://picsum.photos/seed/sktravel-og/1200/630.jpg">
+    
+    <!-- Mobile / branding -->
+    <meta name="theme-color" content="#2d1f3d">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <!-- Geo Tags for Local SEO -->
+    <meta name="geo.region" content="IN-WB">
+    <meta name="geo.placename" content="Alipurduar">
+    <meta name="geo.position" content="26.489;89.527">
+    <meta name="ICBM" content="26.489, 89.527">
+     <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "TravelAgency",
+        "name": "SK Travel Planners",
+        "alternateName": "SKTravel",
+        "url": "https://sktravelplanners.com",
+        "logo": "https://picsum.photos/seed/sklogo/200/200.jpg",
+        "description": "Best tour and travel agency offering custom itineraries, holiday packages, honeymoon packages, adventure tours and vacation planning for North Bengal, Sikkim, Darjeeling, Bhutan and more.",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Alipurduar",
+            "addressRegion": "West Bengal",
+            "addressCountry": "IN"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude":26.489,
+            "longitude":89.527
+        },
+        "telephone": "+91-7810807552",
+        "priceRange": "₹₹",
+        "areaServed": ["North Bengal", "Sikkim", "Darjeeling", "Kalimpong", "Gangtok", "Bhutan", "Nepal", "North East India"],
+        "sameAs": ["https://wa.me/917810807552"],
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Tour Packages",
+            "itemListElement": [
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Darjeeling Tour Package"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Sikkim Holiday Package"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "North Bengal Adventure Tour"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Bhutan Group Tour Package"}},
+                {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Honeymoon Vacation Package"}}
+            ]
+        }
+    }
+    </script>
+
+    <!-- Breadcrumb Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://sktravelplanners.com/"},
+            {"@type": "ListItem", "position": 2, "name": "Itineraries", "item": "https://sktravelplanners.com/#Itineraries"},
+        ]
+    }
+    </script>
+
+    <!-- FAQ Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What tour packages does SK Travel Planners offer?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "SK Travel Planners offers a wide range of tour packages including Darjeeling tour packages, Sikkim holiday packages, North Bengal adventure tours, Bhutan group tours, Nepal vacation packages, honeymoon packages, family tour packages, and custom itineraries for all budgets."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How to book a trip with SK Travel Planners?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "You can book your trip easily by chatting with us on WhatsApp or Our chatbot. Our travel consultants will help you plan your custom itinerary, choose handpicked stays, and finalize your tour package within minutes."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is SK Travel Planners the best travel agency in North Bengal?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, SK Travel Planners is rated as one of the best travel agencies in North Bengal and Siliguri, offering expert-curated day-wise itineraries, affordable pricing, local experiences, and 24/7 support for all tour packages."
+                }
+            }
+        ]
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+</head>
     <!-- Lets CSS know JavaScript is running (skeletons / fade-ins only apply then) -->
     <script>document.documentElement.classList.add('js');</script>
 
@@ -55,8 +364,14 @@ $appConfig = [
             href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
     >
-    <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__ . '/style.css') ?>">
-    <link rel="stylesheet" href="extra.css?v=<?= filemtime(__DIR__ . '/extra.css') ?>">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="extra.css">
+    <link rel="stylesheet" href="carousel-extras.css">
+    <?php if (!empty($heroSlides)): ?>
+    <link rel="preload" as="image" href="<?= e($heroSrc($heroSlides[0], 1600)) ?>"
+          <?php if ($heroSrcset($heroSlides[0])): ?>imagesrcset="<?= e($heroSrcset($heroSlides[0])) ?>" imagesizes="100vw"<?php endif; ?>
+          fetchpriority="high">
+    <?php endif; ?>
 
                 <!-- Favicons -->
         <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
@@ -75,6 +390,7 @@ $appConfig = [
     <noscript>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     </noscript>
+    
 </head>
 
 <body>
@@ -97,6 +413,8 @@ $appConfig = [
         <ul class="navbar-nav">
             <li><a href="index.php" class="active">Home</a></li>
             <li><a href="#itineraries">Itineraries</a></li>
+            <li><a href="#reviews">Reviews</a></li>
+            <li><a href="#faq">FAQ</a></li>
             <li>
                 <a href="admin/index.php">
                     <i class="fas fa-lock"></i> Admin
@@ -110,85 +428,166 @@ $appConfig = [
 <!-- =========================================================
      HERO
 ========================================================= -->
-<section class="hero">
- 
-    <div class="hero-shapes">
-        <div class="hero-shape" style="width:300px;height:300px;top:10%;right:10%;animation-delay:-3s;"></div>
-        <div class="hero-shape" style="width:200px;height:200px;bottom:20%;left:5%;animation-delay:-7s;"></div>
-        <div class="hero-shape" style="width:150px;height:150px;top:60%;right:30%;animation-delay:-12s;"></div>
-    </div>
- 
-    <!-- Pure-CSS landscape: sun, mountains, sea, boat, hills, tourists -->
-    <div class="hero-scene" aria-hidden="true">
- 
-        <span class="sun"></span>
- 
-        <span class="mountain far m5"></span>
-        <span class="mountain far m1"></span>
-        <span class="mountain far m2"></span>
-        <span class="mountain near m3"></span>
-        <span class="mountain near m4"></span>
- 
-        <div class="sea">
-            <span class="wave w1"></span>
-            <span class="wave w2"></span>
-        </div>
- 
-        <span class="boat"><i></i></span>
- 
-        <div class="hill back">
-            <span class="pine" style="--x:30%;--b:86%"></span>
-            <span class="pine" style="--x:38%;--b:92%"></span>
-            <span class="pine" style="--x:62%;--b:92%"></span>
-            <span class="pine" style="--x:70%;--b:86%"></span>
-            <span class="pine" style="--x:80%;--b:74%"></span>
-        </div>
- 
-        <div class="hill front">
-            <span class="tourist t1"><i class="arm"></i><i class="leg l"></i><i class="leg r"></i></span>
-            <span class="tourist t3"><i class="arm"></i><i class="leg l"></i><i class="leg r"></i></span>
-            <span class="tourist t2"><i class="arm"></i><i class="leg l"></i><i class="leg r"></i></span>
-        </div>
- 
-        <div class="hill side"></div>
- 
-    </div>
- 
-    <div class="container hero-content">
- 
-        <h1>
-            Plan Your Dream
-            <span>Journey</span>
-            With Confidence
-        </h1>
- 
-        <p>
-            Curated travel itineraries crafted by experts.
-            From serene backwaters to majestic peaks —
-            your perfect trip awaits.
-        </p>
- 
-        <div class="hero-actions">
-            <a href="#itineraries" class="btn btn-accent btn-lg">
-                <i class="fas fa-compass"></i>
-                Explore Itineraries
-            </a>
- 
-            <a
-                href="https://wa.me/<?= $whatsappNumber ?>?text=<?= $whatsappDefaultMessage ?>"
-                target="_blank"
-                rel="noopener"
-                class="btn btn-whatsapp btn-lg"
+<section class="hero hero-carousel" aria-roledescription="carousel" aria-label="Incredible India destinations">
+
+    <div class="hc-track">
+        <?php foreach ($heroSlides as $i => $s): ?>
+            <figure
+                class="hc-slide<?= $i === 0 ? ' is-active' : '' ?>"
+                style="background:<?= e($s['tint']) ?>"
+                data-title="<?= e($s['title']) ?>"
+                data-state="<?= e($s['state']) ?>"
+                role="group"
+                aria-roledescription="slide"
+                aria-label="<?= $i + 1 ?> of <?= count($heroSlides) ?>"
             >
-                <i class="fab fa-whatsapp"></i>
-                Plan on WhatsApp
-            </a>
-        </div>
- 
+                <?php if ($i === 0): ?>
+                    <!-- First slide loads right away (it's the LCP image) -->
+                    <img
+                        src="<?= e($heroSrc($s, 1600)) ?>"
+                        <?php if ($heroSrcset($s)): ?>srcset="<?= e($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
+                        alt="<?= e($s['title']) ?>, <?= e($s['state']) ?>"
+                        width="1600" height="900"
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                        onload="this.classList.add('is-loaded')"
+                    >
+                <?php else: ?>
+                    <!-- Other slides are lazy: the browser won't fetch them until the script asks -->
+                    <img
+                        data-src="<?= e($heroSrc($s, 1600)) ?>"
+                        <?php if ($heroSrcset($s)): ?>data-srcset="<?= e($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
+                        alt="<?= e($s['title']) ?>, <?= e($s['state']) ?>"
+                        width="1600" height="900"
+                        decoding="async"
+                    >
+                <?php endif; ?>
+            </figure>
+        <?php endforeach; ?>
     </div>
- 
+
+    <div class="hc-overlay" aria-hidden="true"></div>
+
+    <div class="container hc-inner">
+        <div class="hero-content">
+
+            <h1>
+                Plan Your Dream
+                <span>Journey</span>
+                With Confidence
+            </h1>
+
+            <p>
+                Curated travel itineraries crafted by experts.
+                From serene backwaters to majestic peaks —
+                your perfect trip awaits.
+            </p>
+
+            <div class="hero-actions">
+                <a href="#itineraries" class="btn btn-accent btn-lg">
+                    <i class="fas fa-compass"></i>
+                    Explore Itineraries
+                </a>
+
+                <a
+                    href="https://wa.me/<?= $whatsappNumber ?>?text=<?= $whatsappDefaultMessage ?>"
+                    target="_blank"
+                    rel="noopener"
+                    class="btn btn-whatsapp btn-lg"
+                >
+                    <i class="fab fa-whatsapp"></i>
+                    Plan on WhatsApp
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="hc-place" aria-live="polite"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span></span></div>
+
+    <div class="hc-controls">
+        <button type="button" class="hc-btn hc-prev" aria-label="Previous slide"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="hc-dots" role="group" aria-label="Choose slide"></div>
+        <button type="button" class="hc-btn hc-toggle" aria-label="Pause slideshow"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
+        <button type="button" class="hc-btn hc-next" aria-label="Next slide"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+
+    <div class="hc-progress" aria-hidden="true"><span></span></div>
+
 </section>
 
+<?php if (!empty($bestSellers)): ?>
+<section class="section bs-section" id="best-sellers">
+    <div class="container">
+        <?php
+// Trust line numbers from real reviews (hidden when there are none)
+        $bsReviewTotal = 0; $bsWeighted = 0.0;
+        foreach ($ratings as $r) {
+            $bsReviewTotal += $r['count'];
+            $bsWeighted    += $r['avg'] * $r['count'];
+        }
+        $bsOverallAvg = $bsReviewTotal ? $bsWeighted / $bsReviewTotal : 0;
+        ?>
+        <div class="bs-heading">
+            <div class="bs-heading-text">
+                <span class="bs-eyebrow"><i class="fas fa-award" aria-hidden="true"></i> Traveller Favourites</span>
+                <h2>Our Best-Selling <span>Tour Packages</span></h2>
+                <span class="bs-divider" aria-hidden="true"><i></i><i class="fas fa-compass"></i><i></i></span>
+                <p>Handpicked journeys that travellers book again and again, with expert-planned
+                itineraries, trusted stays and dependable local support.</p>
+
+                <?php if ($bsReviewTotal): ?>
+                <ul class="bs-trust">
+                    <li><i class="fas fa-star" aria-hidden="true"></i>
+                        <b><?= number_format($bsOverallAvg, 1) ?>/5</b> average rating</li>
+                    <li><i class="fas fa-users" aria-hidden="true"></i>
+                        <b><?= (int)$bsReviewTotal ?>+</b> traveller reviews</li>
+                    <li><i class="fas fa-headset" aria-hidden="true"></i>
+                        <b>24/7</b> trip support</li>
+                </ul>
+                <?php endif; ?>
+            </div>
+
+            <a href="#itineraries" class="bs-viewall">
+                View all packages <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="bs-carousel" id="bsCarousel" aria-roledescription="carousel" aria-label="Best selling packages">
+            <button type="button" class="bs-arrow bs-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+
+            <div class="bs-track" id="bsTrack">
+                <?php foreach ($bestSellers as $n => $b):
+                    $rt = $ratings[(int)$b['id']] ?? null; ?>
+                    <article class="bs-card">
+                        <div class="bs-img">
+                            <img src="<?= e(imageUrl($b['image'])) ?>" alt="<?= e($b['title']) ?>"
+                                 loading="<?= $n < 2 ? 'eager' : 'lazy' ?>" decoding="async">
+                            <span class="bs-badge"><i class="fas fa-fire"></i> Best Seller</span>
+                            <span class="bs-days"><?= (int)$b['duration_days'] ?> Days</span>
+                        </div>
+                        <div class="bs-body">
+                            <h3><?= e($b['title']) ?></h3>
+                            <div class="bs-dest"><i class="fas fa-map-marker-alt"></i> <?= e($b['destination']) ?></div>
+                            <?php if ($rt): ?>
+                                <div class="bs-rate"><i class="fas fa-star"></i> <b><?= number_format($rt['avg'], 1) ?></b> (<?= $rt['count'] ?>)</div>
+                            <?php endif; ?>
+                            <div class="bs-foot">
+                                <span class="bs-price"><?= e(formatPrice($b['price'])) ?></span>
+                                <a class="btn btn-primary btn-sm" href="detail.php?id=<?= (int)$b['id'] ?>">View <i class="fas fa-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <button type="button" class="bs-arrow bs-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="bs-dots" id="bsDots" role="group" aria-label="Choose slide"></div>
+    </div>
+</section>
+<?php endif; ?>
 <!-- =========================================================
      ITINERARIES
 ========================================================= -->
@@ -196,37 +595,80 @@ $appConfig = [
 
     <div class="container">
 
-        <div class="section-heading">
-            <h2>Handcrafted Itineraries</h2>
-            <p>
-                Each itinerary is meticulously planned with
-                day-wise schedules, handpicked stays,
-                and local experiences.
-            </p>
+        <div class="bs-heading">
+            <div class="bs-heading-text">
+                <h2>Primary<span>Travel Destinations</span></h2>
+                <span class="bs-divider" aria-hidden="true"><i></i><i class="fas fa-compass"></i><i></i></span>
+                <?php if (!empty($primaryDestinations)): ?>
+                    <div class="dc-wrap">
+                        <button type="button" class="dc-arrow dc-prev" aria-label="Previous destinations" hidden>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+
+                        <div class="dest-chips dc-track" id="destChips" role="group" aria-label="Popular destinations">
+
+                            <button type="button" class="dest-chip dest-card is-active is-all" data-dest="">
+                                <span class="dc-img dc-all"><i class="fas fa-earth-asia"></i></span>
+                                <span class="dc-info">
+                                    <strong>All Destinations</strong>
+                                    <small><?= count($itineraries) ?> packages</small>
+                                </span>
+                            </button>
+
+                            <?php foreach ($primaryDestinations as $d): ?>
+                            <button type="button" class="dest-chip dest-card" data-dest="<?= e($d['label']) ?>">
+                                <span class="dc-img">
+                                    <img src="<?= e(imageUrl($d['image'])) ?>" alt="" loading="lazy" decoding="async">
+                                </span>
+                                <span class="dc-info">
+                                    <strong><?= e($d['label']) ?></strong>
+                                    <small><?= (int)$d['count'] ?> package<?= $d['count'] > 1 ? 's' : '' ?></small>
+                                </span>
+                            </button>
+                            <?php endforeach; ?>
+
+                        </div>
+
+                        <button type="button" class="dc-arrow dc-next" aria-label="Next destinations">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <?php endif; ?>
+            </div>
         </div>
 
         <!-- FILTER BAR -->
         <div class="filter-wrapper">
 
+
             <div class="filter-title">
                 <i class="fas fa-sliders"></i>
                 <span>Find Your Perfect Package</span>
             </div>
-
             <div class="filter-controls">
 
-                <div class="filter-group">
-                    <label for="priceFilter">
-                        <i class="fas fa-indian-rupee-sign"></i>
-                        Price Range
+                <div class="price-group">
+                    <label for="priceMin">
+                        <span><i class="fas fa-indian-rupee-sign"></i> Price Range</span>
+                        <output class="ps-value" id="priceValue" for="priceMin priceMax">Any price</output>
                     </label>
 
-                    <select id="priceFilter">
+                    <div class="price-slider" id="priceSlider">
+                        <div class="ps-track"><div class="ps-fill"></div></div>
+                        <input type="range" id="priceMin" aria-label="Minimum price"
+                               min="<?= $priceMin ?>" max="<?= $priceMax ?>" step="500" value="<?= $priceMin ?>">
+                        <input type="range" id="priceMax" aria-label="Maximum price"
+                               min="<?= $priceMin ?>" max="<?= $priceMax ?>" step="500" value="<?= $priceMax ?>">
+                    </div>
+
+                    <div class="ps-scale" aria-hidden="true">
+                        <span id="psMinLabel"></span>
+                        <span id="psMaxLabel"></span>
+                    </div>
+
+                    <!-- Hidden: the existing filter code in app.js reads this -->
+                    <select id="priceFilter" hidden tabindex="-1" aria-hidden="true">
                         <option value="all">All Prices</option>
-                        <option value="0-10000">Under ₹10,000</option>
-                        <option value="10000-20000">₹10,000 – ₹20,000</option>
-                        <option value="20000-30000">₹20,000 – ₹30,000</option>
-                        <option value="30000-999999999">₹30,000+</option>
                     </select>
                 </div>
 
@@ -263,6 +705,23 @@ $appConfig = [
 
         </div>
 
+        <div class="bs-heading">
+            <div class="bs-heading-text">
+                <span class="bs-eyebrow is-purple"><i class="fas fa-map-location-dot" aria-hidden="true"></i> Explore &amp; Compare</span>
+                <h2>Handicrafted<span>Travel Packages</span></h2>
+                <span class="bs-divider" aria-hidden="true"><i></i><i class="fas fa-compass"></i><i></i></span>
+                <p>Every journey is planned by local experts, with clear day-wise schedules,
+                carefully chosen stays and authentic local experiences. Filter by destination
+                and budget to find the trip that fits you.</p>
+
+                <ul class="bs-trust">
+                    <li><i class="fas fa-calendar-check" aria-hidden="true"></i> <b>Day-wise</b> plans</li>
+                    <li><i class="fas fa-hotel" aria-hidden="true"></i> <b>Handpicked</b> stays</li>
+                    <li><i class="fas fa-user-tie" aria-hidden="true"></i> <b>Local</b> experts</li>
+                    <li><i class="fas fa-pen-ruler" aria-hidden="true"></i> <b>Fully</b> customisable</li>
+                </ul>
+            </div>
+        </div>
         <?php if (empty($itineraries)): ?>
 
             <div class="empty-state">
@@ -328,6 +787,19 @@ $appConfig = [
                                 <?= (int)$itin['duration_days'] ?> Days
                             </span>
 
+                            <?php $rt = $ratings[(int)$itin['id']] ?? null; ?>
+                            <span
+                                class="rating-pill<?= $rt ? '' : ' is-new' ?>"
+                                aria-label="<?= $rt ? 'Rated ' . number_format($rt['avg'], 1) . ' out of 5 by ' . $rt['count'] . ' travellers' : 'No ratings yet' ?>"
+                            >
+                                <i class="fas fa-star" aria-hidden="true"></i>
+                                <?php if ($rt): ?>
+                                    <b><?= number_format($rt['avg'], 1) ?></b><em>(<?= $rt['count'] ?>)</em>
+                                <?php else: ?>
+                                    <b>New</b>
+                                <?php endif; ?>
+                            </span>
+
                         </div>
 
                         <!-- BODY -->
@@ -355,6 +827,25 @@ $appConfig = [
                                     <i class="fas fa-route"></i>
                                     <?= count($days) ?> Stops
                                 </span>
+                            </div>
+
+                            <div class="rate-box" data-id="<?= (int)$itin['id'] ?>">
+                                <div class="rate-stars" role="radiogroup" aria-label="Rate <?= e($itin['title']) ?>">
+                                    <?php for ($n = 1; $n <= 5; $n++): ?>
+                                        <button type="button" class="rate-star" role="radio" aria-checked="false"
+                                                data-value="<?= $n ?>" aria-label="<?= $n ?> star<?= $n > 1 ? 's' : '' ?>">
+                                            <i class="fas fa-star" aria-hidden="true"></i>
+                                        </button>
+                                    <?php endfor; ?>
+                                </div>
+                                <span class="rate-count<?= $rt ? '' : ' is-empty' ?>" aria-live="polite">
+                                    <?php if ($rt): ?>
+                                        <b><?= number_format($rt['avg'], 1) ?></b> · <?= $rt['count'] ?> rating<?= $rt['count'] === 1 ? '' : 's' ?>
+                                    <?php else: ?>
+                                        No ratings yet
+                                    <?php endif; ?>
+                                </span>
+                                <span class="rate-hint">Tap a star to rate</span>
                             </div>
 
                             <div class="itin-card-footer">
@@ -403,7 +894,7 @@ $appConfig = [
     </div>
 
 </section>
-
+<br>
 <!-- =========================================================
      WHATSAPP CTA SECTION
 ========================================================= -->
@@ -444,8 +935,538 @@ $appConfig = [
 </section>
 
 <!-- =========================================================
+     WHAT USERS SAY — LIVE USER REVIEW SYSTEM
+========================================================= -->
+<section class="section reviews-section" id="reviews" style="padding: 70px 0; background: linear-gradient(180deg, #FFF9F2 0%, #FDF3E5 100%); position: relative; overflow: hidden;">
+    
+    <!-- Background subtle ambient decorations -->
+    <div style="position:absolute; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle, rgba(244,185,66,0.12) 0%, rgba(244,185,66,0) 70%); top:-50px; left:-50px; pointer-events:none;"></div>
+    <div style="position:absolute; width:350px; height:350px; border-radius:50%; background:radial-gradient(circle, rgba(217,108,63,0.08) 0%, rgba(217,108,63,0) 70%); bottom:-50px; right:-50px; pointer-events:none;"></div>
+
+    <div class="container" style="position:relative; z-index:2;">
+
+        <!-- Section Header -->
+        <div class="section-header text-center" style="text-align:center; margin-bottom:48px;">
+            <span style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--primary); background:rgba(217,108,63,0.1); padding:6px 16px; border-radius:20px; margin-bottom:12px;">
+                <i class="fas fa-heart" style="color:var(--primary); margin-right:4px;"></i> Real Traveler Experiences
+            </span>
+            <h2 style="font-family:'Playfair Display',serif; font-size:38px; font-weight:700; color:var(--dark); margin-bottom:12px; letter-spacing:-0.5px;">
+                What Users Say
+            </h2>
+            <p style="font-size:16px; color:var(--text-muted); max-width:620px; margin:0 auto 24px; line-height:1.6;">
+                Discover why travelers trust SK Travel Planners for their unforgettable journeys and customized holiday packages.
+            </p>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="openReviewModal()" style="display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:30px; font-size:15px; font-weight:600; box-shadow:0 4px 15px rgba(217,108,63,0.3); transition:all 0.3s; cursor:pointer;">
+                    <i class="fas fa-pen"></i> Write a Review
+                </button>
+            </div>
+        </div>
+
+        <!-- 3 Best Reviews Cards Grid -->
+        <?php if (!empty($bestReviews)): ?>
+            <div class="reviews-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:28px; margin-bottom:40px;">
+                <?php foreach ($bestReviews as $rev): 
+                    $initials = '';
+                    $words = explode(' ', trim($rev['user_name']));
+                    foreach (array_slice($words, 0, 2) as $w) {
+                        $initials .= mb_substr($w, 0, 1);
+                    }
+                ?>
+                    <div class="user-review-card" style="background:#ffffff; border-radius:18px; padding:32px 28px; box-shadow:0 8px 30px rgba(0,0,0,0.05); border:1px solid rgba(217,108,63,0.12); position:relative; display:flex; flex-direction:column; justify-content:space-between; transition:transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s; overflow:hidden;">
+                        
+                        <!-- Top quote decorative icon -->
+                        <div style="position:absolute; top:20px; right:24px; font-size:36px; color:rgba(217,108,63,0.1); pointer-events:none;">
+                            <i class="fas fa-quote-right"></i>
+                        </div>
+
+                        <div>
+                            <!-- Star Rating -->
+                            <div style="display:flex; align-items:center; gap:3px; color:#f59e0b; font-size:17px; margin-bottom:14px;">
+                                <?php for ($s = 1; $s <= 5; $s++): ?>
+                                    <i class="<?= $s <= (int)$rev['rating'] ? 'fas' : 'far' ?> fa-star"></i>
+                                <?php endfor; ?>
+                                <span style="font-size:13px; font-weight:700; color:var(--dark); margin-left:6px; background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:12px;">
+                                    <?= (int)$rev['rating'] ?>.0 / 5
+                                </span>
+                            </div>
+
+                            <!-- Review Title -->
+                            <?php if (!empty($rev['review_title'])): ?>
+                                <h4 style="font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--dark); margin-bottom:12px; line-height:1.4;">
+                                    <?= e($rev['review_title']) ?>
+                                </h4>
+                            <?php endif; ?>
+
+                            <!-- Review Text -->
+                            <p style="font-size:15px; line-height:1.7; color:#475569; margin-bottom:24px; font-style:italic;">
+                                "<?= nl2br(e($rev['review_text'])) ?>"
+                            </p>
+                        </div>
+
+                        <!-- Reviewer Info -->
+                        <div style="border-top:1px solid #f1f5f9; padding-top:18px; display:flex; align-items:center; gap:14px;">
+                            <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--accent)); color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; text-transform:uppercase; flex-shrink:0; box-shadow:0 4px 10px rgba(217,108,63,0.25);">
+                                <?= e($initials ?: 'U') ?>
+                            </div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:700; color:var(--dark); font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    <?= e($rev['user_name']) ?>
+                                </div>
+                                <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                                    <?php if (!empty($rev['user_location'])): ?>
+                                        <span><i class="fas fa-map-marker-alt" style="color:var(--primary); font-size:11px;"></i> <?= e($rev['user_location']) ?></span>
+                                        <span>·</span>
+                                    <?php endif; ?>
+                                    <span style="color:#059669; font-weight:600; display:inline-flex; align-items:center; gap:3px;">
+                                        <i class="fas fa-check-circle" style="font-size:11px;"></i> Verified Traveler
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div style="background:#fff; border-radius:16px; padding:40px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.05); max-width:600px; margin:0 auto 30px;">
+                <i class="fas fa-comments" style="font-size:48px; color:var(--accent); margin-bottom:16px;"></i>
+                <h3 style="font-family:'Playfair Display',serif; font-size:22px; color:var(--dark); margin-bottom:8px;">Be The First To Review</h3>
+                <p style="color:var(--text-muted); font-size:15px; margin-bottom:20px;">Have you booked a trip with SK Travel Planners? Share your experience with our community!</p>
+                <button type="button" class="btn btn-primary" onclick="openReviewModal()"><i class="fas fa-pen"></i> Leave a Review</button>
+            </div>
+        <?php endif; ?>
+
+        <!-- Bottom trust banner / CTA -->
+        <div style="background:rgba(255,255,255,0.7); backdrop-filter:blur(6px); border-radius:14px; padding:18px 24px; border:1px dashed rgba(217,108,63,0.3); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; max-width:850px; margin:0 auto;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="width:40px; height:40px; border-radius:50%; background:rgba(217,108,63,0.12); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:18px;">
+                    <i class="fas fa-shield-alt"></i>
+                </span>
+                <div>
+                    <strong style="color:var(--dark); font-size:14px; display:block;">100% Genuine Traveler Reviews</strong>
+                    <span style="color:var(--text-muted); font-size:13px;">Every review is verified to guarantee authentic feedback.</span>
+                </div>
+            </div>
+            <button type="button" onclick="openReviewModal()" style="background:none; border:none; color:var(--primary); font-weight:700; font-size:14px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:6px 0;">
+                Share your journey <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- =========================================================
+     LIVE REVIEW SUBMISSION MODAL
+========================================================= -->
+<div id="reviewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(27,40,56,0.75); backdrop-filter:blur(5px); z-index:999999; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    
+    <div style="background:#ffffff; width:100%; max-width:540px; border-radius:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; position:relative; animation:reviewModalPop 0.3s cubic-bezier(0.16,1,0.3,1);">
+        
+        <!-- Modal Header -->
+        <div style="background:linear-gradient(135deg, var(--dark), var(--dark-lighter)); color:#ffffff; padding:22px 28px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <h3 style="font-family:'Playfair Display',serif; font-size:22px; font-weight:700; margin:0; color:#ffffff;">Share Your Experience</h3>
+                <p style="font-size:13px; color:rgba(255,255,255,0.75); margin:4px 0 0;">Your review helps fellow travelers plan their dream trips!</p>
+            </div>
+            <button type="button" onclick="closeReviewModal()" style="background:rgba(255,255,255,0.12); border:none; color:#ffffff; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; transition:background 0.2s;" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body / Form -->
+        <div style="padding:26px 28px; max-height:calc(90vh - 120px); overflow-y:auto;">
+            
+            <div id="reviewSuccessBox" style="display:none; text-align:center; padding:30px 10px;">
+                <div style="width:68px; height:68px; border-radius:50%; background:#d1fae5; color:#059669; display:inline-flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:18px;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h4 style="font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--dark); margin-bottom:8px;">Thank You!</h4>
+                <p id="reviewSuccessText" style="font-size:15px; color:#475569; line-height:1.6; margin-bottom:24px;">
+                    Your review has been submitted successfully and will appear under What Users Say once approved by our team.
+                </p>
+                <button type="button" class="btn btn-primary" onclick="closeReviewModal()" style="padding:10px 24px; border-radius:8px;">Done</button>
+            </div>
+
+            <form id="liveReviewForm" onsubmit="submitLiveReview(event)" novalidate>
+                
+                <div id="reviewAlertBox" style="display:none; padding:12px 16px; border-radius:8px; font-size:14px; margin-bottom:18px; background:#fee2e2; color:#991b1b; border-left:4px solid #ef4444;"></div>
+
+                <!-- Anti-spam Honeypot -->
+                <input type="text" name="website_url" style="display:none !important;" tabindex="-1" autocomplete="off">
+                <input type="hidden" name="ajax" value="1">
+
+                <!-- Interactive Star Rating Picker -->
+                <div style="text-align:center; margin-bottom:22px; padding:14px; background:#fffbf5; border-radius:12px; border:1px solid #fed7aa;">
+                    <label style="display:block; font-size:13px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+                        How was your experience?
+                    </label>
+                    <div id="modalStarPicker" style="display:inline-flex; gap:8px; font-size:28px; color:#fbbf24; cursor:pointer;">
+                        <span class="m-star" data-val="1" title="1 Star"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="2" title="2 Stars"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="3" title="3 Stars"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="4" title="4 Stars"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="5" title="5 Stars"><i class="fas fa-star"></i></span>
+                    </div>
+                    <input type="hidden" name="rating" id="modalRatingInput" value="5">
+                    <div id="modalRatingText" style="font-size:13px; font-weight:700; color:#d97706; margin-top:6px;">
+                        ★★★★★ 5.0 - Exceptional Experience!
+                    </div>
+                </div>
+
+                <!-- Reviewer Name -->
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                        Your Full Name <span style="color:#ef4444;">*</span>
+                    </label>
+                    <input type="text" name="user_name" required placeholder="e.g. Rahul Sharma" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                </div>
+
+                <!-- Two Columns: Email & Tour/Location -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                            Email Address <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Private)</span>
+                        </label>
+                        <input type="email" name="user_email" placeholder="e.g. rahul@example.com" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                            Destination / Tour <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Optional)</span>
+                        </label>
+                        <input type="text" name="user_location" placeholder="e.g. Bali, Kashmir, Darjeeling" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <!-- Review Title -->
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                        Headline / Title <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Optional)</span>
+                    </label>
+                    <input type="text" name="review_title" placeholder="e.g. Best vacation of our lives!" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                </div>
+
+                <!-- Review Message -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                        Your Review <span style="color:#ef4444;">*</span>
+                    </label>
+                    <textarea name="review_text" rows="4" required minlength="10" placeholder="Tell other travelers about the hotels, guides, transport, and overall support..." style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical; box-sizing:border-box; line-height:1.5;"></textarea>
+                    <span style="font-size:12px; color:var(--text-muted);">Minimum 10 characters</span>
+                </div>
+
+                <!-- Submit Button -->
+                <div style="display:flex; justify-content:flex-end; gap:12px; align-items:center;">
+                    <button type="button" onclick="closeReviewModal()" style="padding:10px 18px; border:1.5px solid #cbd5e1; background:#ffffff; color:#475569; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+                        Cancel
+                    </button>
+                    <button type="submit" id="reviewSubmitBtn" class="btn btn-primary" style="padding:10px 24px; border-radius:8px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:8px;">
+                        <span id="reviewBtnIcon"><i class="fas fa-paper-plane"></i></span>
+                        <span id="reviewBtnText">Submit Review</span>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+@keyframes reviewModalPop {
+    from { opacity: 0; transform: scale(0.92) translateY(15px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.user-review-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 35px rgba(217, 108, 63, 0.12) !important;
+}
+.m-star {
+    transition: transform 0.15s, color 0.15s;
+    user-select: none;
+}
+.m-star:hover {
+    transform: scale(1.2);
+}
+</style>
+
+<script>
+// Interactive Review Modal Logic
+function openReviewModal() {
+    const modal = document.getElementById('reviewModal');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeReviewModal() {
+    const modal = document.getElementById('reviewModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// Star Rating Interactive Picker
+(function() {
+    let currentRating = 5;
+    const ratingLabels = {
+        1: '★☆☆☆☆ 1.0 - Poor',
+        2: '★★☆☆☆ 2.0 - Fair',
+        3: '★★★☆☆ 3.0 - Good',
+        4: '★★★★☆ 4.0 - Very Good!',
+        5: '★★★★★ 5.0 - Exceptional Experience!'
+    };
+    
+    const stars = document.querySelectorAll('#modalStarPicker .m-star');
+    const input = document.getElementById('modalRatingInput');
+    const label = document.getElementById('modalRatingText');
+
+    function renderStars(val) {
+        stars.forEach(s => {
+            const v = parseInt(s.getAttribute('data-val'), 10);
+            const icon = s.querySelector('i');
+            if (v <= val) {
+                icon.className = 'fas fa-star';
+                s.style.color = '#fbbf24';
+            } else {
+                icon.className = 'far fa-star';
+                s.style.color = '#cbd5e1';
+            }
+        });
+        if (label && ratingLabels[val]) {
+            label.textContent = ratingLabels[val];
+        }
+    }
+
+    stars.forEach(s => {
+        s.addEventListener('mouseenter', function() {
+            const hoverVal = parseInt(this.getAttribute('data-val'), 10);
+            renderStars(hoverVal);
+        });
+
+        s.addEventListener('click', function() {
+            currentRating = parseInt(this.getAttribute('data-val'), 10);
+            input.value = currentRating;
+            renderStars(currentRating);
+        });
+    });
+
+    const picker = document.getElementById('modalStarPicker');
+    if (picker) {
+        picker.addEventListener('mouseleave', function() {
+            renderStars(currentRating);
+        });
+    }
+    
+    // Close modal on click outside box
+    const modal = document.getElementById('reviewModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeReviewModal();
+            }
+        });
+    }
+})();
+
+// AJAX Review Form Submission
+function submitLiveReview(e) {
+    e.preventDefault();
+    const form = document.getElementById('liveReviewForm');
+    const alertBox = document.getElementById('reviewAlertBox');
+    const submitBtn = document.getElementById('reviewSubmitBtn');
+    const btnText = document.getElementById('reviewBtnText');
+    const btnIcon = document.getElementById('reviewBtnIcon');
+
+    alertBox.style.display = 'none';
+
+    // Simple validation
+    const name = form.querySelector('[name="user_name"]').value.trim();
+    const text = form.querySelector('[name="review_text"]').value.trim();
+
+    if (name.length < 2) {
+        alertBox.textContent = 'Please enter your name (at least 2 characters).';
+        alertBox.style.display = 'block';
+        return;
+    }
+
+    if (text.length < 10) {
+        alertBox.textContent = 'Please enter a review message with at least 10 characters.';
+        alertBox.style.display = 'block';
+        return;
+    }
+
+    // Disable button & show spinner
+    submitBtn.disabled = true;
+    btnText.textContent = 'Submitting...';
+    btnIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    const formData = new FormData(form);
+
+    fetch('submit-review.php', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Submit Review';
+        btnIcon.innerHTML = '<i class="fas fa-paper-plane"></i>';
+
+        if (data.ok) {
+            form.style.display = 'none';
+            const successBox = document.getElementById('reviewSuccessBox');
+            const successText = document.getElementById('reviewSuccessText');
+            successText.textContent = data.message || 'Your review has been submitted successfully and will appear once approved by our team.';
+            successBox.style.display = 'block';
+        } else {
+            alertBox.textContent = data.error || 'Failed to submit review. Please try again.';
+            alertBox.style.display = 'block';
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Submit Review';
+        btnIcon.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        alertBox.textContent = 'A network error occurred. Please check your connection and try again.';
+        alertBox.style.display = 'block';
+    });
+}
+</script>
+
+<!-- NEW FAQ SECTION -->
+        <div id="faq" class="footer-faq" style="margin-top: 40px; margin-bottom: 40px;">
+            <h4 style="text-align:center; margin-bottom: 25px; font-size: 24px;">Frequently Asked Questions</h4>
+            <div style="max-width: 800px; margin: 0 auto;">
+                
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        How do I book a tour with SK Travel Planners?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Booking your dream trip is easy! You can start by browsing our itineraries and clicking "Inquire". Alternatively, reach out via email or phone. Process: 1. Consult (share dates/preferences), 2. Customize (we design & quote), 3. Confirm (secure with a deposit), 4. Prepare (we handle the logistics)!</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex;; justify-content: space-between; align-items: center;">
+                        Are the tour prices per person or per group?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">All listed tour prices are <strong>per person</strong>, typically based on double/twin occupancy. Solo travelers will have a single supplement fee. However, if you are a private group booking a customized tour together, we can provide a flat group package rate upon request.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        What's included in the tour price?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Standard tours include: Accommodation, private air-conditioned transport with a chauffeur, local expert guides, daily breakfast, and all listed monument entrance fees. <em>Note: International flights, visa fees, and personal expenses/tips are generally not included.</em></p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        Can I customize a tour to my preferences?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;"><strong>Absolutely!</strong> Customization is our specialty. You can adjust the duration, upgrade hotels, add specific activities (like cooking classes or yoga retreats), or change the route. Just tell us what you envision, and we’ll build it.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        What is the cancellation policy?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Our standard policy (from date of departure): 60+ days prior: Deposit refunded (minus admin fee). 30-59 days: 50% non-refundable. 0-29 days: 100% non-refundable. *Peak season/luxury train bookings may have stricter policies. We strongly recommend travel insurance.*</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        Do you provide visa assistance?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">We provide <strong>comprehensive visa assistance</strong>. While we don't process visas directly, we supply all necessary supporting documents (hotel vouchers, itinerary) and guide you step-by-step through the Indian e-Visa online process.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        Are India tours safe for solo female travelers?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Yes! At SK Travel Planners, we prioritize your safety by providing vetted private transport, safe centrally-located hotels, professionally trained guides, and 24/7 on-ground support. You can also request female guides in certain cities for added comfort.</p>
+                </details>
+
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 5px;">
+                    <summary style="cursor: pointer; font-weight: bold; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                        What is the best time to visit India?
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </summary>
+                    <p style="margin-top: 15px; line-height: 1.6;">Generally, <strong>October to March</strong> is best for most of the country (Golden Triangle, Rajasthan, South India). April to June is ideal for the Himalayas. July to September is the monsoon season—great for lush landscapes and Ayurvedic treatments in Kerala.</p>
+                </details>
+
+            </div>
+        </div>
+        <!-- END FAQ SECTION -->
+<!-- =========================================================
      FOOTER
 ========================================================= -->
+<!--<footer class="footer">-->
+
+<!--    <div class="container">-->
+
+<!--        <div class="footer-grid">-->
+
+<!--            <div>-->
+<!--                <h4>-->
+<!--                <img class="footer-logo" src="logo.jpg" alt="Logo">-->
+<!--                    <?= e(APP_NAME) ?>-->
+<!--                </h4>-->
+<!--                <p style="max-width:320px;">-->
+<!--                    Your trusted partner for unforgettable-->
+<!--                    travel experiences. Expert-crafted itineraries-->
+<!--                    for destinations across the globe.-->
+<!--                </p>-->
+<!--            </div>-->
+
+<!--            <div>-->
+<!--                <h4>Quick Links</h4>-->
+<!--                <ul style="list-style:none;">-->
+<!--                    <li style="margin-bottom:8px;"><a href="index.php">Home</a></li>-->
+<!--                    <li style="margin-bottom:8px;"><a href="#itineraries">Itineraries</a></li>-->
+<!--                    <li style="margin-bottom:8px;"><a href="admin/index.php">Admin Panel</a></li>-->
+<!--                </ul>-->
+<!--            </div>-->
+
+<!--            <div>-->
+<!--                <h4>Contact</h4>-->
+<!--                <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">sktravelplanners@gmail.com</a></p>-->
+<!--                <p><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= $whatsappNumber ?>" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>-->
+
+<!--                <a-->
+<!--                    href="https://wa.me/<?= $whatsappNumber ?>"-->
+<!--                    target="_blank"-->
+<!--                    rel="noopener"-->
+<!--                    class="footer-whatsapp"-->
+<!--                >-->
+<!--                    <i class="fab fa-whatsapp"></i>-->
+<!--                    WhatsApp Us-->
+<!--                </a>-->
+<!--            </div>-->
+
+<!--        </div>-->
+
+<!--        <div class="footer-bottom">-->
+<!--            &copy; <?= date('Y') ?> <?= e(APP_NAME) ?>. All rights reserved.-->
+<!--            <a href="privicy-policy.html" target="_blank">Terms & Conditions</a>-->
+<!--           &nbsp; &nbsp; <span> <a href = "https://e-websolutions.netlify.app/" target="_blank">Maintained by e-WebSolutions</a></span>-->
+<!--        </div>-->
+
+<!--    </div>-->
+
+<!--</footer>-->
 <footer class="footer">
 
     <div class="container">
@@ -466,9 +1487,11 @@ $appConfig = [
 
             <div>
                 <h4>Quick Links</h4>
-                <ul style="list-style:none;">
+                <ul style="list-style:none; padding-left:0;">
                     <li style="margin-bottom:8px;"><a href="index.php">Home</a></li>
                     <li style="margin-bottom:8px;"><a href="#itineraries">Itineraries</a></li>
+                    <li style="margin-bottom:8px;"><a href="#reviews">Reviews</a></li>
+                    <li style="margin-bottom:8px;"><a href="#faq">FAQ</a></li>
                     <li style="margin-bottom:8px;"><a href="admin/index.php">Admin Panel</a></li>
                 </ul>
             </div>
@@ -491,14 +1514,17 @@ $appConfig = [
 
         </div>
 
+        
+
         <div class="footer-bottom">
             &copy; <?= date('Y') ?> <?= e(APP_NAME) ?>. All rights reserved.
+            <a href="privicy-policy.html" target="_blank">Terms & Conditions</a>
+           &nbsp; &nbsp; <span> <a href = "https://e-websolutions.netlify.app/" target="_blank">Maintained by e-WebSolutions</a></span>
         </div>
 
     </div>
 
 </footer>
-
 <!-- =========================================================
      FLOATING WHATSAPP BUTTON
 ========================================================= -->
@@ -610,6 +1636,7 @@ $appConfig = [
 
         <div class="chatbot-footer">
             <span>Powered by <?= e(APP_NAME) ?></span>
+            
         </div>
 
     </div>
@@ -623,6 +1650,211 @@ $appConfig = [
     window.APP = <?= json_encode($appConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
 </script>
 <script src="app.js" defer></script>
+<style>
+/* ---------- destination chips ---------- */
+.dest-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.dest-chip{border:1px solid rgba(0,0,0,.15);background:#fff;color:inherit;border-radius:999px;
+  padding:7px 14px;font:inherit;font-size:.9rem;cursor:pointer;transition:.2s}
+.dest-chip em{font-style:normal;font-size:.75rem;opacity:.6;margin-left:4px}
+.dest-chip:hover{border-color:#2d1f3d}
+.dest-chip.is-active{background:#2d1f3d;color:#fff;border-color:#2d1f3d}
+
+/* ---------- best-seller carousel ---------- */
+.bs-carousel{position:relative}
+.bs-track{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  padding:6px 2px 14px;scrollbar-width:none}
+.bs-track::-webkit-scrollbar{display:none}
+.bs-card{flex:0 0 calc((100% - 40px)/3);scroll-snap-align:start;background:#fff;border-radius:14px;
+  overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.09);display:flex;flex-direction:column}
+.bs-img{position:relative;aspect-ratio:16/10;background:#ddd}
+.bs-img img{width:100%;height:100%;object-fit:cover;display:block}
+.bs-badge{position:absolute;top:12px;left:12px;background:#e8590c;color:#fff;font-size:.75rem;
+  font-weight:600;padding:5px 10px;border-radius:999px}
+.bs-days{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.65);color:#fff;
+  font-size:.75rem;padding:4px 10px;border-radius:999px}
+.bs-body{padding:16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.bs-body h3{font-size:1.1rem;margin:0}
+.bs-dest,.bs-rate{font-size:.88rem;opacity:.8}
+.bs-rate i{color:#f5a623}
+.bs-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding-top:10px}
+.bs-price{font-weight:700;font-size:1.1rem}
+.bs-arrow{position:absolute;top:40%;transform:translateY(-50%);z-index:2;width:42px;height:42px;
+  border-radius:50%;border:0;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+.bs-prev{left:-14px}.bs-next{right:-14px}
+.bs-dots{display:flex;justify-content:center;gap:8px;margin-top:8px}
+.bs-dots button{width:9px;height:9px;border-radius:50%;border:0;background:#c9c9c9;padding:0;cursor:pointer}
+.bs-dots button.on{background:#2d1f3d;width:24px;border-radius:6px}
+@media(max-width:900px){.bs-card{flex-basis:calc((100% - 20px)/2)}}
+@media(max-width:600px){.bs-card{flex-basis:88%}.bs-arrow{display:none}}
+/* ---------- best-seller heading ---------- */
+.bs-heading{position:relative;text-align:center;max-width:760px;margin:0 auto 38px}
+.bs-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;
+  background:rgba(232,89,12,.1);color:#e8590c;font-size:.78rem;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase}
+.bs-heading h2{margin:14px 0 10px;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.15;
+  color:#2d1f3d;letter-spacing:-.01em}
+.bs-heading h2 span{color:#e8590c}
+.bs-divider{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 auto 14px;color:#e8590c}
+.bs-divider i:not(.fas){display:block;width:56px;height:2px;
+  background:linear-gradient(90deg,transparent,#e8590c)}
+.bs-divider i:last-child{background:linear-gradient(270deg,transparent,#e8590c)}
+.bs-heading p{margin:0 auto;max-width:600px;font-size:1.05rem;line-height:1.65;opacity:.75}
+
+.bs-trust{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;
+  margin:22px 0 0;padding:14px 0 0;border-top:1px solid rgba(0,0,0,.08);font-size:.9rem}
+.bs-trust li{display:flex;align-items:center;gap:8px}
+.bs-trust i{color:#e8590c}
+.bs-trust b{color:#2d1f3d}
+
+.bs-viewall{position:absolute;right:0;bottom:0;display:inline-flex;align-items:center;gap:8px;
+  font-weight:600;font-size:.92rem;color:#2d1f3d;text-decoration:none;
+  border-bottom:2px solid #e8590c;padding-bottom:2px;transition:gap .2s}
+.bs-viewall:hover{gap:12px}
+/* keep the link from overlapping the centred text on smaller screens */
+@media(max-width:1100px){
+  .bs-viewall{position:static;display:flex;justify-content:center;width:max-content;margin:20px auto 0}
+}
+/* ---------- destination card carousel ---------- */
+.dc-wrap{position:relative;margin:4px 0 22px}
+.dest-chips.dc-track{display:flex;flex-wrap:nowrap;gap:14px;overflow-x:auto;margin:0;
+  padding:6px 2px 10px;scroll-snap-type:x proximity;scroll-behavior:smooth;scrollbar-width:none}
+.dc-track::-webkit-scrollbar{display:none}
+
+.dest-chip.dest-card{flex:0 0 190px;scroll-snap-align:start;display:flex;flex-direction:column;
+  padding:0;border-radius:14px;overflow:hidden;text-align:left;background:#fff;
+  border:2px solid transparent;box-shadow:0 4px 14px rgba(0,0,0,.1);
+  transition:transform .2s,box-shadow .2s,border-color .2s}
+.dest-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.16)}
+.dest-card.is-active{background:#fff;color:inherit;border-color:#e8590c}
+
+.dc-img{display:block;height:100px;background:#ddd;overflow:hidden}
+.dc-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
+.dest-card:hover .dc-img img{transform:scale(1.08)}
+.dc-all{display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff;
+  background:linear-gradient(135deg,#2d1f3d,#e8590c)}
+
+.dc-info{display:flex;flex-direction:column;gap:2px;padding:10px 12px}
+.dc-info strong{font-size:.95rem;color:#2d1f3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-info small{font-size:.78rem;opacity:.65}
+.dest-card.is-active .dc-info strong{color:#e8590c}
+
+.dc-arrow{position:absolute;top:42%;transform:translateY(-50%);z-index:2;width:38px;height:38px;
+  border-radius:50%;border:0;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+.dc-prev{left:-12px}.dc-next{right:-12px}
+.dc-arrow[hidden]{display:none}
+
+@media(max-width:600px){
+  .dest-chip.dest-card{flex-basis:150px}
+  .dc-img{height:84px}
+  .dc-arrow{display:none}
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* ---------- Destination chips: drive the existing filter ---------- */
+    var chips  = document.querySelectorAll('#destChips .dest-chip');
+    var search = document.getElementById('destinationSearch');
+
+    function markChip(value) {
+        var v = (value || '').trim().toLowerCase();
+        chips.forEach(function (c) {
+            c.classList.toggle('is-active', c.dataset.dest.toLowerCase() === v);
+        });
+    }
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            if (!search) return;
+            search.value = chip.dataset.dest;
+            search.dispatchEvent(new Event('input', { bubbles: true }));  // triggers app.js filter
+            markChip(chip.dataset.dest);
+            document.getElementById('itineraryGrid')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+    if (search) search.addEventListener('input', function () { markChip(search.value); });
+    ['resetFilters', 'resetFiltersEmpty'].forEach(function (id) {
+        document.getElementById(id)?.addEventListener('click', function () { markChip(''); });
+    });
+    
+    /* ---------- Destination card carousel ---------- */
+var dcTrack = document.getElementById('destChips');
+if (dcTrack) {
+    var dcPrev = document.querySelector('.dc-prev');
+    var dcNext = document.querySelector('.dc-next');
+    var dcStep = function () { return Math.max(200, dcTrack.clientWidth * 0.8); };
+
+    function dcArrows() {
+        var max = dcTrack.scrollWidth - dcTrack.clientWidth - 4;
+        dcPrev.hidden = dcTrack.scrollLeft <= 4;
+        dcNext.hidden = dcTrack.scrollLeft >= max;
+    }
+    dcPrev.addEventListener('click', function () { dcTrack.scrollBy({ left: -dcStep(), behavior: 'smooth' }); });
+    dcNext.addEventListener('click', function () { dcTrack.scrollBy({ left:  dcStep(), behavior: 'smooth' }); });
+    dcTrack.addEventListener('scroll', function () { requestAnimationFrame(dcArrows); }, { passive: true });
+    window.addEventListener('resize', dcArrows);
+    dcArrows();
+
+    // keep the selected card visible
+    dcTrack.addEventListener('click', function (e) {
+        var card = e.target.closest('.dest-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+}
+    /* ---------- Best-seller carousel ---------- */
+    var track = document.getElementById('bsTrack');
+    if (!track) return;
+    var cards = track.querySelectorAll('.bs-card');
+    var dots  = document.getElementById('bsDots');
+    var root  = document.getElementById('bsCarousel');
+    var timer;
+
+    function perView() { return Math.max(1, Math.round(track.clientWidth / cards[0].getBoundingClientRect().width)); }
+    function step()    { return cards[0].getBoundingClientRect().width + 20; }
+    function pages()   { return Math.max(1, cards.length - perView() + 1); }
+
+    function buildDots() {
+        dots.innerHTML = '';
+        for (var i = 0; i < pages(); i++) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('aria-label', 'Slide ' + (i + 1));
+            (function (idx) { b.addEventListener('click', function () { go(idx); restart(); }); })(i);
+            dots.appendChild(b);
+        }
+        sync();
+    }
+    function sync() {
+        var idx = Math.round(track.scrollLeft / step());
+        dots.querySelectorAll('button').forEach(function (d, i) { d.classList.toggle('on', i === idx); });
+    }
+    function go(i)  { track.scrollTo({ left: i * step(), behavior: 'smooth' }); }
+    function next() {
+        var atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+        atEnd ? go(0) : track.scrollBy({ left: step(), behavior: 'smooth' });
+    }
+    function prev() {
+        track.scrollLeft <= 4 ? go(pages() - 1) : track.scrollBy({ left: -step(), behavior: 'smooth' });
+    }
+    function start()   { timer = setInterval(next, 4500); }
+    function stop()    { clearInterval(timer); }
+    function restart() { stop(); start(); }
+
+    root.querySelector('.bs-next').addEventListener('click', function () { next(); restart(); });
+    root.querySelector('.bs-prev').addEventListener('click', function () { prev(); restart(); });
+    track.addEventListener('scroll', function () { window.requestAnimationFrame(sync); }, { passive: true });
+    root.addEventListener('mouseenter', stop);
+    root.addEventListener('mouseleave', start);
+    root.addEventListener('touchstart', stop, { passive: true });
+    root.addEventListener('touchend', start, { passive: true });
+    window.addEventListener('resize', buildDots);
+
+    buildDots();
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) start();
+});
+</script>
+<script src="carousel-extras.js" defer></script>
 
 </body>
 </html>
