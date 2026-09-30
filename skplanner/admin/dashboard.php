@@ -16,6 +16,16 @@ requireAdmin();
  $totalImages  = $pdo->query("SELECT COUNT(*) FROM itineraries WHERE image IS NOT NULL AND image != ''")->fetchColumn();
  $totalRevenue = $pdo->query("SELECT COALESCE(SUM(price),0) FROM itineraries WHERE status = 1")->fetchColumn();
 
+// Reviews stats
+$totalReviews   = 0;
+$pendingReviews = 0;
+$recentPendingReviews = [];
+try {
+    $totalReviews   = (int)$pdo->query("SELECT COUNT(*) FROM user_reviews")->fetchColumn();
+    $pendingReviews = (int)$pdo->query("SELECT COUNT(*) FROM user_reviews WHERE status = 'pending'")->fetchColumn();
+    $recentPendingReviews = $pdo->query("SELECT * FROM user_reviews WHERE status = 'pending' ORDER BY created_at DESC LIMIT 5")->fetchAll();
+} catch (Throwable $e) {}
+
 // Recent activity
  $recentItins = $pdo->query("SELECT title, created_at FROM itineraries ORDER BY created_at DESC LIMIT 5")->fetchAll();
 
@@ -162,7 +172,7 @@ if ($page > $totalPages) $page = $totalPages;
 
         /* ---- Stats Cards ---- */
         .stats-grid {
-            display:grid; grid-template-columns:repeat(5,1fr); gap:20px; margin-bottom:30px;
+            display:grid; grid-template-columns:repeat(6,1fr); gap:18px; margin-bottom:30px;
         }
         .stat-card {
             background:var(--white); border-radius:var(--radius); padding:22px 20px;
@@ -178,6 +188,7 @@ if ($page > $totalPages) $page = $totalPages;
         .stat-card:nth-child(3)::before { background:var(--danger); }
         .stat-card:nth-child(4)::before { background:var(--accent); }
         .stat-card:nth-child(5)::before { background:var(--warning); }
+        .stat-card:nth-child(6)::before { background:#f59e0b; }
 
         .stat-card .stat-icon {
             width:44px; height:44px; border-radius:12px;
@@ -189,6 +200,7 @@ if ($page > $totalPages) $page = $totalPages;
         .stat-card:nth-child(3) .stat-icon { background:rgba(220,53,69,0.1); color:var(--danger); }
         .stat-card:nth-child(4) .stat-icon { background:rgba(232,145,45,0.1); color:var(--accent); }
         .stat-card:nth-child(5) .stat-icon { background:rgba(212,160,23,0.1); color:var(--warning); }
+        .stat-card:nth-child(6) .stat-icon { background:rgba(245,158,11,0.14); color:#d97706; }
 
         .stat-card .stat-value {
             font-family:'Playfair Display',serif; font-size:28px; font-weight:700; color:var(--dark);
@@ -493,6 +505,14 @@ if ($page > $totalPages) $page = $totalPages;
         <ul class="admin-nav">
             <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
             <li><a href="itinerary-form.php"><i class="fas fa-plus-circle"></i> New Itinerary</a></li>
+            <li>
+                <a href="reviews.php" style="display:flex;align-items:center;">
+                    <i class="fas fa-star"></i> User Reviews
+                    <?php if ($pendingReviews > 0): ?>
+                        <span style="background:#E8912D;color:#fff;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700;margin-left:auto;"><?= $pendingReviews ?></span>
+                    <?php endif; ?>
+                </a>
+            </li>
             <li><a href="backup.php"><i class="fas fa-database"></i> DB Backup</a></li>
             <div class="nav-divider"></div>
             <li><a href="../index.php"><i class="fas fa-globe"></i> View Website</a></li>
@@ -546,6 +566,18 @@ if ($page > $totalPages) $page = $totalPages;
                     <div class="stat-value"><?= e(formatPrice($totalRevenue)) ?></div>
                     <div class="stat-label">Total Value (Active)</div>
                 </div>
+                <a href="reviews.php" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-star"></i></div>
+                        <div class="stat-value">
+                            <?= (int)$totalReviews ?>
+                            <?php if ($pendingReviews > 0): ?>
+                                <span style="font-size:11px;background:#f59e0b;color:#fff;padding:2px 6px;border-radius:10px;vertical-align:middle;margin-left:4px;font-family:sans-serif;font-weight:700;"><?= $pendingReviews ?> new</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="stat-label">User Reviews</div>
+                    </div>
+                </a>
             </div>
 
             <!-- ============ TOOLBAR ============ -->
@@ -789,6 +821,57 @@ if ($page > $totalPages) $page = $totalPages;
                     </div>
                 </div>
             </div>
+
+            <!-- ============ REVIEWS AWAITING APPROVAL ============ -->
+            <?php if (!empty($recentPendingReviews)): ?>
+            <div style="background:#fff;border-radius:var(--radius);padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);margin-top:24px;border-top:4px solid #f59e0b;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+                    <h3 style="font-size:18px;margin:0;display:flex;align-items:center;gap:8px;font-family:'Playfair Display',serif;">
+                        <i class="fas fa-clock" style="color:#f59e0b;"></i> User Reviews Awaiting Approval (<?= count($recentPendingReviews) ?>)
+                    </h3>
+                    <a href="reviews.php?filter=pending" class="btn btn-ghost btn-sm" style="font-size:13px;">View All in Reviews &rarr;</a>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <?php foreach ($recentPendingReviews as $pr): ?>
+                        <div style="background:var(--light);border-radius:10px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                            <div style="flex:1;min-width:260px;">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+                                    <strong style="color:var(--dark);font-size:15px;"><?= e($pr['user_name']) ?></strong>
+                                    <?php if (!empty($pr['user_location'])): ?>
+                                        <span style="font-size:13px;color:var(--text-muted);"><i class="fas fa-map-marker-alt" style="color:var(--primary);"></i> <?= e($pr['user_location']) ?></span>
+                                    <?php endif; ?>
+                                    <span style="color:#fbbf24;font-size:13px;">
+                                        <?php for ($s=1;$s<=(int)$pr['rating'];$s++): ?><i class="fas fa-star"></i><?php endfor; ?>
+                                    </span>
+                                    <span style="font-size:12px;color:var(--text-muted);"><?= date('M j, Y g:i A', strtotime($pr['created_at'])) ?></span>
+                                </div>
+                                <div style="font-size:13px;color:#475569;line-height:1.5;">
+                                    <?= !empty($pr['review_title']) ? '<strong>' . e($pr['review_title']) . ':</strong> ' : '' ?>"<?= e(mb_strimwidth($pr['review_text'], 0, 160, '...')) ?>"
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <form method="POST" action="review-action.php" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                    <input type="hidden" name="id" value="<?= (int)$pr['id'] ?>">
+                                    <input type="hidden" name="action" value="accept">
+                                    <button type="submit" class="btn btn-sm" style="background:#10b981;color:#fff;border:none;cursor:pointer;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                                        <i class="fas fa-check"></i> Accept
+                                    </button>
+                                </form>
+                                <form method="POST" action="review-action.php" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                    <input type="hidden" name="id" value="<?= (int)$pr['id'] ?>">
+                                    <input type="hidden" name="action" value="decline">
+                                    <button type="submit" class="btn btn-sm" style="background:#ef4444;color:#fff;border:none;cursor:pointer;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                                        <i class="fas fa-times"></i> Decline
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
 
         </div><!-- /.admin-content -->
     </div><!-- /.admin-main -->

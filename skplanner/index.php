@@ -42,6 +42,23 @@ try {
     error_log('Ratings unavailable: ' . $e->getMessage());
 }
 
+// ---------------------------------------------------------
+// Best 3 Approved User Reviews for "What Users Say" section
+// ---------------------------------------------------------
+$bestReviews = [];
+try {
+    $brStmt = $pdo->prepare(
+        "SELECT * FROM user_reviews 
+         WHERE status = 'approved' 
+         ORDER BY rating DESC, created_at DESC, id DESC 
+         LIMIT 3"
+    );
+    $brStmt->execute();
+    $bestReviews = $brStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    error_log('User reviews query failed: ' . $e->getMessage());
+}
+
 
 // ---------------------------------------------------------
 // Primary destinations (auto-built from the packages)
@@ -396,6 +413,8 @@ $appConfig = [
         <ul class="navbar-nav">
             <li><a href="index.php" class="active">Home</a></li>
             <li><a href="#itineraries">Itineraries</a></li>
+            <li><a href="#reviews">Reviews</a></li>
+            <li><a href="#faq">FAQ</a></li>
             <li>
                 <a href="admin/index.php">
                     <i class="fas fa-lock"></i> Admin
@@ -915,6 +934,410 @@ $appConfig = [
 
 </section>
 
+<!-- =========================================================
+     WHAT USERS SAY — LIVE USER REVIEW SYSTEM
+========================================================= -->
+<section class="section reviews-section" id="reviews" style="padding: 70px 0; background: linear-gradient(180deg, #FFF9F2 0%, #FDF3E5 100%); position: relative; overflow: hidden;">
+    
+    <!-- Background subtle ambient decorations -->
+    <div style="position:absolute; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle, rgba(244,185,66,0.12) 0%, rgba(244,185,66,0) 70%); top:-50px; left:-50px; pointer-events:none;"></div>
+    <div style="position:absolute; width:350px; height:350px; border-radius:50%; background:radial-gradient(circle, rgba(217,108,63,0.08) 0%, rgba(217,108,63,0) 70%); bottom:-50px; right:-50px; pointer-events:none;"></div>
+
+    <div class="container" style="position:relative; z-index:2;">
+
+        <!-- Section Header -->
+        <div class="section-header text-center" style="text-align:center; margin-bottom:48px;">
+            <span style="display:inline-block; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--primary); background:rgba(217,108,63,0.1); padding:6px 16px; border-radius:20px; margin-bottom:12px;">
+                <i class="fas fa-heart" style="color:var(--primary); margin-right:4px;"></i> Real Traveler Experiences
+            </span>
+            <h2 style="font-family:'Playfair Display',serif; font-size:38px; font-weight:700; color:var(--dark); margin-bottom:12px; letter-spacing:-0.5px;">
+                What Users Say
+            </h2>
+            <p style="font-size:16px; color:var(--text-muted); max-width:620px; margin:0 auto 24px; line-height:1.6;">
+                Discover why travelers trust SK Travel Planners for their unforgettable journeys and customized holiday packages.
+            </p>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="openReviewModal()" style="display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:30px; font-size:15px; font-weight:600; box-shadow:0 4px 15px rgba(217,108,63,0.3); transition:all 0.3s; cursor:pointer;">
+                    <i class="fas fa-pen"></i> Write a Review
+                </button>
+            </div>
+        </div>
+
+        <!-- 3 Best Reviews Cards Grid -->
+        <?php if (!empty($bestReviews)): ?>
+            <div class="reviews-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:28px; margin-bottom:40px;">
+                <?php foreach ($bestReviews as $rev): 
+                    $initials = '';
+                    $words = explode(' ', trim($rev['user_name']));
+                    foreach (array_slice($words, 0, 2) as $w) {
+                        $initials .= mb_substr($w, 0, 1);
+                    }
+                ?>
+                    <div class="user-review-card" style="background:#ffffff; border-radius:18px; padding:32px 28px; box-shadow:0 8px 30px rgba(0,0,0,0.05); border:1px solid rgba(217,108,63,0.12); position:relative; display:flex; flex-direction:column; justify-content:space-between; transition:transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s; overflow:hidden;">
+                        
+                        <!-- Top quote decorative icon -->
+                        <div style="position:absolute; top:20px; right:24px; font-size:36px; color:rgba(217,108,63,0.1); pointer-events:none;">
+                            <i class="fas fa-quote-right"></i>
+                        </div>
+
+                        <div>
+                            <!-- Star Rating -->
+                            <div style="display:flex; align-items:center; gap:3px; color:#f59e0b; font-size:17px; margin-bottom:14px;">
+                                <?php for ($s = 1; $s <= 5; $s++): ?>
+                                    <i class="<?= $s <= (int)$rev['rating'] ? 'fas' : 'far' ?> fa-star"></i>
+                                <?php endfor; ?>
+                                <span style="font-size:13px; font-weight:700; color:var(--dark); margin-left:6px; background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:12px;">
+                                    <?= (int)$rev['rating'] ?>.0 / 5
+                                </span>
+                            </div>
+
+                            <!-- Review Title -->
+                            <?php if (!empty($rev['review_title'])): ?>
+                                <h4 style="font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--dark); margin-bottom:12px; line-height:1.4;">
+                                    <?= e($rev['review_title']) ?>
+                                </h4>
+                            <?php endif; ?>
+
+                            <!-- Review Text -->
+                            <p style="font-size:15px; line-height:1.7; color:#475569; margin-bottom:24px; font-style:italic;">
+                                "<?= nl2br(e($rev['review_text'])) ?>"
+                            </p>
+                        </div>
+
+                        <!-- Reviewer Info -->
+                        <div style="border-top:1px solid #f1f5f9; padding-top:18px; display:flex; align-items:center; gap:14px;">
+                            <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--accent)); color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; text-transform:uppercase; flex-shrink:0; box-shadow:0 4px 10px rgba(217,108,63,0.25);">
+                                <?= e($initials ?: 'U') ?>
+                            </div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:700; color:var(--dark); font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    <?= e($rev['user_name']) ?>
+                                </div>
+                                <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                                    <?php if (!empty($rev['user_location'])): ?>
+                                        <span><i class="fas fa-map-marker-alt" style="color:var(--primary); font-size:11px;"></i> <?= e($rev['user_location']) ?></span>
+                                        <span>·</span>
+                                    <?php endif; ?>
+                                    <span style="color:#059669; font-weight:600; display:inline-flex; align-items:center; gap:3px;">
+                                        <i class="fas fa-check-circle" style="font-size:11px;"></i> Verified Traveler
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div style="background:#fff; border-radius:16px; padding:40px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.05); max-width:600px; margin:0 auto 30px;">
+                <i class="fas fa-comments" style="font-size:48px; color:var(--accent); margin-bottom:16px;"></i>
+                <h3 style="font-family:'Playfair Display',serif; font-size:22px; color:var(--dark); margin-bottom:8px;">Be The First To Review</h3>
+                <p style="color:var(--text-muted); font-size:15px; margin-bottom:20px;">Have you booked a trip with SK Travel Planners? Share your experience with our community!</p>
+                <button type="button" class="btn btn-primary" onclick="openReviewModal()"><i class="fas fa-pen"></i> Leave a Review</button>
+            </div>
+        <?php endif; ?>
+
+        <!-- Bottom trust banner / CTA -->
+        <div style="background:rgba(255,255,255,0.7); backdrop-filter:blur(6px); border-radius:14px; padding:18px 24px; border:1px dashed rgba(217,108,63,0.3); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; max-width:850px; margin:0 auto;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="width:40px; height:40px; border-radius:50%; background:rgba(217,108,63,0.12); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:18px;">
+                    <i class="fas fa-shield-alt"></i>
+                </span>
+                <div>
+                    <strong style="color:var(--dark); font-size:14px; display:block;">100% Genuine Traveler Reviews</strong>
+                    <span style="color:var(--text-muted); font-size:13px;">Every review is verified to guarantee authentic feedback.</span>
+                </div>
+            </div>
+            <button type="button" onclick="openReviewModal()" style="background:none; border:none; color:var(--primary); font-weight:700; font-size:14px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:6px 0;">
+                Share your journey <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- =========================================================
+     LIVE REVIEW SUBMISSION MODAL
+========================================================= -->
+<div id="reviewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(27,40,56,0.75); backdrop-filter:blur(5px); z-index:999999; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    
+    <div style="background:#ffffff; width:100%; max-width:540px; border-radius:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; position:relative; animation:reviewModalPop 0.3s cubic-bezier(0.16,1,0.3,1);">
+        
+        <!-- Modal Header -->
+        <div style="background:linear-gradient(135deg, var(--dark), var(--dark-lighter)); color:#ffffff; padding:22px 28px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <h3 style="font-family:'Playfair Display',serif; font-size:22px; font-weight:700; margin:0; color:#ffffff;">Share Your Experience</h3>
+                <p style="font-size:13px; color:rgba(255,255,255,0.75); margin:4px 0 0;">Your review helps fellow travelers plan their dream trips!</p>
+            </div>
+            <button type="button" onclick="closeReviewModal()" style="background:rgba(255,255,255,0.12); border:none; color:#ffffff; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; transition:background 0.2s;" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body / Form -->
+        <div style="padding:26px 28px; max-height:calc(90vh - 120px); overflow-y:auto;">
+            
+            <div id="reviewSuccessBox" style="display:none; text-align:center; padding:30px 10px;">
+                <div style="width:68px; height:68px; border-radius:50%; background:#d1fae5; color:#059669; display:inline-flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:18px;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h4 style="font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--dark); margin-bottom:8px;">Thank You!</h4>
+                <p id="reviewSuccessText" style="font-size:15px; color:#475569; line-height:1.6; margin-bottom:24px;">
+                    Your review has been submitted successfully and will appear under What Users Say once approved by our team.
+                </p>
+                <button type="button" class="btn btn-primary" onclick="closeReviewModal()" style="padding:10px 24px; border-radius:8px;">Done</button>
+            </div>
+
+            <form id="liveReviewForm" onsubmit="submitLiveReview(event)" novalidate>
+                
+                <div id="reviewAlertBox" style="display:none; padding:12px 16px; border-radius:8px; font-size:14px; margin-bottom:18px; background:#fee2e2; color:#991b1b; border-left:4px solid #ef4444;"></div>
+
+                <!-- Anti-spam Honeypot -->
+                <input type="text" name="website_url" style="display:none !important;" tabindex="-1" autocomplete="off">
+                <input type="hidden" name="ajax" value="1">
+
+                <!-- Interactive Star Rating Picker -->
+                <div style="text-align:center; margin-bottom:22px; padding:14px; background:#fffbf5; border-radius:12px; border:1px solid #fed7aa;">
+                    <label style="display:block; font-size:13px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+                        How was your experience?
+                    </label>
+                    <div id="modalStarPicker" style="display:inline-flex; gap:8px; font-size:28px; color:#fbbf24; cursor:pointer;">
+                        <span class="m-star" data-val="1" title="1 Star"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="2" title="2 Stars"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="3" title="3 Stars"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="4" title="4 Stars"><i class="fas fa-star"></i></span>
+                        <span class="m-star" data-val="5" title="5 Stars"><i class="fas fa-star"></i></span>
+                    </div>
+                    <input type="hidden" name="rating" id="modalRatingInput" value="5">
+                    <div id="modalRatingText" style="font-size:13px; font-weight:700; color:#d97706; margin-top:6px;">
+                        ★★★★★ 5.0 - Exceptional Experience!
+                    </div>
+                </div>
+
+                <!-- Reviewer Name -->
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                        Your Full Name <span style="color:#ef4444;">*</span>
+                    </label>
+                    <input type="text" name="user_name" required placeholder="e.g. Rahul Sharma" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                </div>
+
+                <!-- Two Columns: Email & Tour/Location -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                            Email Address <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Private)</span>
+                        </label>
+                        <input type="email" name="user_email" placeholder="e.g. rahul@example.com" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                            Destination / Tour <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Optional)</span>
+                        </label>
+                        <input type="text" name="user_location" placeholder="e.g. Bali, Kashmir, Darjeeling" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <!-- Review Title -->
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                        Headline / Title <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Optional)</span>
+                    </label>
+                    <input type="text" name="review_title" placeholder="e.g. Best vacation of our lives!" style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+                </div>
+
+                <!-- Review Message -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                        Your Review <span style="color:#ef4444;">*</span>
+                    </label>
+                    <textarea name="review_text" rows="4" required minlength="10" placeholder="Tell other travelers about the hotels, guides, transport, and overall support..." style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical; box-sizing:border-box; line-height:1.5;"></textarea>
+                    <span style="font-size:12px; color:var(--text-muted);">Minimum 10 characters</span>
+                </div>
+
+                <!-- Submit Button -->
+                <div style="display:flex; justify-content:flex-end; gap:12px; align-items:center;">
+                    <button type="button" onclick="closeReviewModal()" style="padding:10px 18px; border:1.5px solid #cbd5e1; background:#ffffff; color:#475569; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+                        Cancel
+                    </button>
+                    <button type="submit" id="reviewSubmitBtn" class="btn btn-primary" style="padding:10px 24px; border-radius:8px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:8px;">
+                        <span id="reviewBtnIcon"><i class="fas fa-paper-plane"></i></span>
+                        <span id="reviewBtnText">Submit Review</span>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+@keyframes reviewModalPop {
+    from { opacity: 0; transform: scale(0.92) translateY(15px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.user-review-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 35px rgba(217, 108, 63, 0.12) !important;
+}
+.m-star {
+    transition: transform 0.15s, color 0.15s;
+    user-select: none;
+}
+.m-star:hover {
+    transform: scale(1.2);
+}
+</style>
+
+<script>
+// Interactive Review Modal Logic
+function openReviewModal() {
+    const modal = document.getElementById('reviewModal');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeReviewModal() {
+    const modal = document.getElementById('reviewModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// Star Rating Interactive Picker
+(function() {
+    let currentRating = 5;
+    const ratingLabels = {
+        1: '★☆☆☆☆ 1.0 - Poor',
+        2: '★★☆☆☆ 2.0 - Fair',
+        3: '★★★☆☆ 3.0 - Good',
+        4: '★★★★☆ 4.0 - Very Good!',
+        5: '★★★★★ 5.0 - Exceptional Experience!'
+    };
+    
+    const stars = document.querySelectorAll('#modalStarPicker .m-star');
+    const input = document.getElementById('modalRatingInput');
+    const label = document.getElementById('modalRatingText');
+
+    function renderStars(val) {
+        stars.forEach(s => {
+            const v = parseInt(s.getAttribute('data-val'), 10);
+            const icon = s.querySelector('i');
+            if (v <= val) {
+                icon.className = 'fas fa-star';
+                s.style.color = '#fbbf24';
+            } else {
+                icon.className = 'far fa-star';
+                s.style.color = '#cbd5e1';
+            }
+        });
+        if (label && ratingLabels[val]) {
+            label.textContent = ratingLabels[val];
+        }
+    }
+
+    stars.forEach(s => {
+        s.addEventListener('mouseenter', function() {
+            const hoverVal = parseInt(this.getAttribute('data-val'), 10);
+            renderStars(hoverVal);
+        });
+
+        s.addEventListener('click', function() {
+            currentRating = parseInt(this.getAttribute('data-val'), 10);
+            input.value = currentRating;
+            renderStars(currentRating);
+        });
+    });
+
+    const picker = document.getElementById('modalStarPicker');
+    if (picker) {
+        picker.addEventListener('mouseleave', function() {
+            renderStars(currentRating);
+        });
+    }
+    
+    // Close modal on click outside box
+    const modal = document.getElementById('reviewModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeReviewModal();
+            }
+        });
+    }
+})();
+
+// AJAX Review Form Submission
+function submitLiveReview(e) {
+    e.preventDefault();
+    const form = document.getElementById('liveReviewForm');
+    const alertBox = document.getElementById('reviewAlertBox');
+    const submitBtn = document.getElementById('reviewSubmitBtn');
+    const btnText = document.getElementById('reviewBtnText');
+    const btnIcon = document.getElementById('reviewBtnIcon');
+
+    alertBox.style.display = 'none';
+
+    // Simple validation
+    const name = form.querySelector('[name="user_name"]').value.trim();
+    const text = form.querySelector('[name="review_text"]').value.trim();
+
+    if (name.length < 2) {
+        alertBox.textContent = 'Please enter your name (at least 2 characters).';
+        alertBox.style.display = 'block';
+        return;
+    }
+
+    if (text.length < 10) {
+        alertBox.textContent = 'Please enter a review message with at least 10 characters.';
+        alertBox.style.display = 'block';
+        return;
+    }
+
+    // Disable button & show spinner
+    submitBtn.disabled = true;
+    btnText.textContent = 'Submitting...';
+    btnIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    const formData = new FormData(form);
+
+    fetch('submit-review.php', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Submit Review';
+        btnIcon.innerHTML = '<i class="fas fa-paper-plane"></i>';
+
+        if (data.ok) {
+            form.style.display = 'none';
+            const successBox = document.getElementById('reviewSuccessBox');
+            const successText = document.getElementById('reviewSuccessText');
+            successText.textContent = data.message || 'Your review has been submitted successfully and will appear once approved by our team.';
+            successBox.style.display = 'block';
+        } else {
+            alertBox.textContent = data.error || 'Failed to submit review. Please try again.';
+            alertBox.style.display = 'block';
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Submit Review';
+        btnIcon.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        alertBox.textContent = 'A network error occurred. Please check your connection and try again.';
+        alertBox.style.display = 'block';
+    });
+}
+</script>
+
 <!-- NEW FAQ SECTION -->
         <div id="faq" class="footer-faq" style="margin-top: 40px; margin-bottom: 40px;">
             <h4 style="text-align:center; margin-bottom: 25px; font-size: 24px;">Frequently Asked Questions</h4>
@@ -1067,7 +1490,8 @@ $appConfig = [
                 <ul style="list-style:none; padding-left:0;">
                     <li style="margin-bottom:8px;"><a href="index.php">Home</a></li>
                     <li style="margin-bottom:8px;"><a href="#itineraries">Itineraries</a></li>
-                    <li style="margin-bottom:8px;"><a href="#faq">FAQ</a></li> <!-- NEW FAQ LINK -->
+                    <li style="margin-bottom:8px;"><a href="#reviews">Reviews</a></li>
+                    <li style="margin-bottom:8px;"><a href="#faq">FAQ</a></li>
                     <li style="margin-bottom:8px;"><a href="admin/index.php">Admin Panel</a></li>
                 </ul>
             </div>

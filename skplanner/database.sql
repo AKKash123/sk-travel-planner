@@ -641,3 +641,33 @@ INNER JOIN itineraries i
 ORDER BY
     ii.itinerary_id,
     ii.sort_order;
+
+
+-- ============================================
+-- 9. USER REVIEWS TABLE & SAMPLES
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS user_reviews (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    user_name     VARCHAR(100) NOT NULL,
+    user_email    VARCHAR(150) DEFAULT NULL,
+    user_location VARCHAR(100) DEFAULT NULL,
+    rating        TINYINT UNSIGNED NOT NULL DEFAULT 5,
+    review_title  VARCHAR(255) DEFAULT NULL,
+    review_text   TEXT NOT NULL,
+    status        ENUM('pending', 'approved', 'declined') NOT NULL DEFAULT 'pending',
+    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_rating (rating),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO user_reviews 
+    (id, user_name, user_email, user_location, rating, review_title, review_text, status, created_at)
+VALUES
+    (1, 'Rahul Sengupta', 'rahul.s@example.com', 'Kolkata, WB (Kashmir Tour)', 5, 'Seamless organization & magical trip!', 'Our 7-day family tour to Kashmir was organized to perfection by SK Travel Planners. From airport pickup in Srinagar to the serene houseboat stay and Gulmarg gondola tickets, everything was completely stress-free. Exceptional service and very polite chauffeur throughout!', 'approved', NOW() - INTERVAL 12 DAY),
+    (2, 'Priya & Vikram Malhotra', 'vikram.m@example.com', 'New Delhi (Bali Paradise)', 5, 'Unforgettable honeymoon in Bali!', 'SK Travel Planners crafted our dream honeymoon itinerary in Bali. The private pool villa in Seminyak, the sunrise trek at Mount Batur, and the Nusa Penida island speedboat tour were breathtaking. 24/7 WhatsApp assistance gave us huge peace of mind!', 'approved', NOW() - INTERVAL 6 DAY),
+    (3, 'Ananya Sharma', 'ananya.sh@example.com', 'Bengaluru (Darjeeling & Sikkim)', 5, 'Spectacular mountain views & top hospitality', 'Booked the Darjeeling and Gangtok adventure for our college reunion group. The hotel selections had mesmerizing views of Mount Kanchenjunga, and our local guide was incredibly knowledgeable. Best travel planner we have worked with!', 'approved', NOW() - INTERVAL 2 DAY),
+    (4, 'Devendra Joshi', 'd.joshi@example.com', 'Ahmedabad (Kerala Cruise)', 4, 'Wonderful houseboat experience in Alleppey', 'Very good planning and authentic South Indian cuisine on the houseboat. The driver was punctual and courteous. A memorable holiday with family. Would love to book again next winter!', 'pending', NOW() - INTERVAL 1 HOUR)
+ON DUPLICATE KEY UPDATE id=id;

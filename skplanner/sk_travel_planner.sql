@@ -130,6 +130,33 @@ INSERT INTO `itinerary_reviews` (`id`, `itinerary_id`, `voter_hash`, `rating`, `
 (3, 3, '8528cbb54c867ff6b1c3f396b286c7835ea42cd50460f46e3d983dddaf33f506', 4, '2026-09-29 12:14:45', '2026-09-29 12:14:45');
 
 --
+-- Table structure for table `user_reviews`
+--
+
+CREATE TABLE `user_reviews` (
+  `id` int(11) NOT NULL,
+  `user_name` varchar(100) NOT NULL,
+  `user_email` varchar(150) DEFAULT NULL,
+  `user_location` varchar(100) DEFAULT NULL,
+  `rating` tinyint(3) UNSIGNED NOT NULL DEFAULT 5,
+  `review_title` varchar(255) DEFAULT NULL,
+  `review_text` text NOT NULL,
+  `status` enum('pending','approved','declined') NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `user_reviews`
+--
+
+INSERT INTO `user_reviews` (`id`, `user_name`, `user_email`, `user_location`, `rating`, `review_title`, `review_text`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'Rahul Sengupta', 'rahul.s@example.com', 'Kolkata, WB (Kashmir Tour)', 5, 'Seamless organization & magical trip!', 'Our 7-day family tour to Kashmir was organized to perfection by SK Travel Planners. From airport pickup in Srinagar to the serene houseboat stay and Gulmarg gondola tickets, everything was completely stress-free. Exceptional service and very polite chauffeur throughout!', 'approved', '2026-09-18 10:00:00', '2026-09-18 10:00:00'),
+(2, 'Priya & Vikram Malhotra', 'vikram.m@example.com', 'New Delhi (Bali Paradise)', 5, 'Unforgettable honeymoon in Bali!', 'SK Travel Planners crafted our dream honeymoon itinerary in Bali. The private pool villa in Seminyak, the sunrise trek at Mount Batur, and the Nusa Penida island speedboat tour were breathtaking. 24/7 WhatsApp assistance gave us huge peace of mind!', 'approved', '2026-09-24 14:30:00', '2026-09-24 14:30:00'),
+(3, 'Ananya Sharma', 'ananya.sh@example.com', 'Bengaluru (Darjeeling & Sikkim)', 5, 'Spectacular mountain views & top hospitality', 'Booked the Darjeeling and Gangtok adventure for our college reunion group. The hotel selections had mesmerizing views of Mount Kanchenjunga, and our local guide was incredibly knowledgeable. Best travel planner we have worked with!', 'approved', '2026-09-28 16:15:00', '2026-09-28 16:15:00'),
+(4, 'Devendra Joshi', 'd.joshi@example.com', 'Ahmedabad (Kerala Cruise)', 4, 'Wonderful houseboat experience in Alleppey', 'Very good planning and authentic South Indian cuisine on the houseboat. The driver was punctual and courteous. A memorable holiday with family. Would love to book again next winter!', 'pending', '2026-09-30 20:00:00', '2026-09-30 20:00:00');
+
+--
 -- Indexes for dumped tables
 --
 
@@ -162,6 +189,15 @@ ALTER TABLE `itinerary_reviews`
   ADD KEY `idx_itinerary` (`itinerary_id`);
 
 --
+-- Indexes for table `user_reviews`
+--
+ALTER TABLE `user_reviews`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_rating` (`rating`),
+  ADD KEY `idx_created_at` (`created_at`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -188,6 +224,12 @@ ALTER TABLE `itinerary_images`
 --
 ALTER TABLE `itinerary_reviews`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `user_reviews`
+--
+ALTER TABLE `user_reviews`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Constraints for dumped tables
