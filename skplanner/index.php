@@ -103,12 +103,8 @@ if ($priceMax <= $priceMin) {
 // own image (e.g. 'assets/hero/goa.jpg'). A broken image is skipped
 // automatically. 'tint' is the colour shown while the photo loads.
 // ---------------------------------------------------------
-// ---------------------------------------------------------
-// Hero carousel: North Bengal, images fetched online from
-// Wikimedia Commons (free licences). To use your own photo for
-// any slide, drop  assets/hero/<slug>.jpg  and it overrides the online one.
-// ---------------------------------------------------------
 $heroSlides = [
+    // Darjeeling / Sikkim / Dooars (existing)
     ['slug' => 'darjeeling-pine-forest', 'title' => 'Pine Forests of Darjeeling', 'state' => 'Darjeeling',   'tint' => '#2f4a3a', 'wiki' => 'Pine trees Darjeeling.jpg'],
     ['slug' => 'yumthang-valley',        'title' => 'Yumthang Valley of Flowers', 'state' => 'North Sikkim', 'tint' => '#4a6a4a', 'wiki' => 'Yumthang Valley at North Sikkim, India 01.jpg'],
     ['slug' => 'ghum-toy-train',         'title' => 'Toy Train at Ghum Station',  'state' => 'Ghum',         'tint' => '#3b4a5a', 'wiki' => 'A train of Darjeeling Himalayan Railway at Ghoom Station.jpg'],
@@ -120,6 +116,22 @@ $heroSlides = [
     ['slug' => 'mirik-pine-road',        'title' => 'Pine Road to Mirik',         'state' => 'Mirik',        'tint' => '#2f4f3a', 'wiki' => 'A Route through Pine Forest.jpg'],
     ['slug' => 'sumendu-lake',           'title' => 'Sumendu Lake',               'state' => 'Mirik',        'tint' => '#2d6f86', 'wiki' => 'Sumendu Lake, Mirik.jpg'],
     ['slug' => 'dooars-tea-garden',      'title' => 'Tea Gardens of the Dooars',  'state' => 'Dooars',       'tint' => '#3a5a30', 'wiki' => 'Tea garden in dooars.jpg'],
+
+    // Arunachal Pradesh
+    ['slug' => 'tawang-monastery',       'title' => 'Tawang Monastery',           'state' => 'Arunachal Pradesh', 'tint' => '#6a4a2f', 'wiki' => 'Tawang Monastery (Tibetan Buddhist).jpg'],
+    ['slug' => 'ziro-valley',            'title' => 'Ziro Valley Paddy Fields',   'state' => 'Arunachal Pradesh', 'tint' => '#4a7a3a', 'wiki' => 'Ziro Valley.jpg'],
+
+    // Assam
+   ['slug' => 'sela-pass',              'title' => 'Sela Pass',                  'state' => 'Arunachal Pradesh', 'tint' => '#4a6a85', 'wiki' => 'Sela Pass, Arunachal Pradesh.jpg'],
+['slug' => 'kaziranga-rhino',        'title' => 'One-Horned Rhino, Kaziranga','state' => 'Assam',             'tint' => '#5a6a3a', 'wiki' => 'One-Horned Rhino at the Kaziranga National Park, Assam.jpg'],
+
+    ['slug' => 'majuli-island',          'title' => 'Majuli River Island',        'state' => 'Assam',             'tint' => '#3a6a70', 'wiki' => 'Majuli Island.jpg'],
+    ['slug' => 'assam-tea-garden',       'title' => 'Tea Gardens of Assam',       'state' => 'Assam',             'tint' => '#3f6b30', 'wiki' => 'Tea Garden at Indo-Bhutan Border at Darranga, Assam.jpg'],
+
+    // Goa
+    ['slug' => 'palolem-beach',          'title' => 'Palolem Beach',              'state' => 'Goa',               'tint' => '#2d7a8a', 'wiki' => 'Palolem Beach.jpg'],
+    ['slug' => 'basilica-bom-jesus',     'title' => 'Basilica of Bom Jesus',      'state' => 'Goa',               'tint' => '#8a5a3a', 'wiki' => 'Basilica of Bom Jesus.jpg'],
+    ['slug' => 'dudhsagar-falls',        'title' => 'Dudhsagar Falls',            'state' => 'Goa',               'tint' => '#3a5a4a', 'wiki' => 'Dudhsagar Falls.jpg'],
 ];
 
 foreach ($heroSlides as &$hs) {
@@ -148,6 +160,7 @@ $heroSrcset = static function (array $s) use ($heroSrc): string {
     }
     return implode(', ', array_map(static fn($w) => $heroSrc($s, $w) . ' ' . $w . 'w', [640, 1024, 1600]));
 };
+
 
 // WhatsApp number - country code + number, without + or spaces
 $whatsappNumber = '917810807552';
@@ -1061,7 +1074,7 @@ $appConfig = [
 
             <div>
                 <h4>Contact</h4>
-                <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">sktravelplanners@gmail.com</a></p>
+                <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">info@sktravelplanners.in</a></p>
                 <p><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= $whatsappNumber ?>" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>
 
                 <a
