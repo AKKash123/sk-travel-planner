@@ -146,6 +146,19 @@ CREATE TABLE `user_reviews` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `review_images`
+--
+
+CREATE TABLE `review_images` (
+  `id` int(11) NOT NULL,
+  `review_id` int(11) NOT NULL,
+  `image` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 --
 -- Dumping data for table `user_reviews`
 --
@@ -198,6 +211,13 @@ ALTER TABLE `user_reviews`
   ADD KEY `idx_created_at` (`created_at`);
 
 --
+-- Indexes for table `review_images`
+--
+ALTER TABLE `review_images`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_review_id` (`review_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -230,6 +250,12 @@ ALTER TABLE `itinerary_reviews`
 --
 ALTER TABLE `user_reviews`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `review_images`
+--
+ALTER TABLE `review_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

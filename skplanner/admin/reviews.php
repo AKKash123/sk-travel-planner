@@ -67,6 +67,18 @@ $dataStmt = $pdo->prepare("SELECT * FROM user_reviews {$whereSql} ORDER BY {$sor
 $dataStmt->execute($params);
 $reviews = $dataStmt->fetchAll();
 
+// Preload review photos from review_images
+$reviewImagesMap = [];
+if (!empty($reviews)) {
+    $revIds = array_column($reviews, 'id');
+    $placeholders = implode(',', array_fill(0, count($revIds), '?'));
+    $imgStmt = $pdo->prepare("SELECT * FROM review_images WHERE review_id IN ($placeholders) ORDER BY id ASC");
+    $imgStmt->execute($revIds);
+    while ($imgRow = $imgStmt->fetch(PDO::FETCH_ASSOC)) {
+        $reviewImagesMap[$imgRow['review_id']][] = $imgRow;
+    }
+}
+
 $csrf = csrfToken();
 ?>
 <!DOCTYPE html>
@@ -297,6 +309,82 @@ $csrf = csrfToken();
         }
         .toast-msg.show { transform:translateY(0); opacity:1; }
 
+        /* Review Photos Gallery in Admin */
+        .review-photos-section {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed #e2e8f0;
+        }
+        .review-thumbnails-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .review-thumb-item {
+            position: relative;
+            width: 72px;
+            height: 72px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            background: #f8fafc;
+            flex-shrink: 0;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+        .review-thumb-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(217,108,63,0.18);
+        }
+        .review-thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+            display: block;
+        }
+        .review-thumb-item .btn-del-thumb {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 20px;
+            height: 20px;
+            background: rgba(239, 68, 68, 0.92);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.85;
+            transition: all 0.2s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+            padding: 0;
+        }
+        .review-thumb-item .btn-del-thumb:hover {
+            background: #dc2626;
+            opacity: 1;
+            transform: scale(1.15);
+        }
+        .preview-mini-chip {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+        }
+        .preview-mini-chip img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         /* Responsive */
         @media(max-width:992px) {
             .stats-grid { grid-template-columns:repeat(3,1fr); }
@@ -485,6 +573,41 @@ $csrf = csrfToken();
                                     <div class="review-item-title"><?= e($rev['review_title']) ?></div>
                                 <?php endif; ?>
                                 <p class="review-item-text"><?= nl2br(e($rev['review_text'])) ?></p>
+
+                                <?php $revImages = $reviewImagesMap[$rev['id']] ?? []; ?>
+                                <!-- Review Photos Section -->
+                                <div class="review-photos-section" id="photos-sec-<?= (int)$rev['id'] ?>">
+                                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <span style="font-size:13px; font-weight:700; color:var(--dark); display:inline-flex; align-items:center; gap:6px;">
+                                                <i class="fas fa-images" style="color:var(--primary);"></i> Attached Photos
+                                            </span>
+                                            <span class="photo-count-badge" id="photo-count-<?= (int)$rev['id'] ?>" style="background:rgba(217,108,63,0.12); color:var(--primary); font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700;">
+                                                <?= count($revImages) ?> photo<?= count($revImages) !== 1 ? 's' : '' ?>
+                                            </span>
+                                        </div>
+                                        <button type="button" class="btn btn-ghost btn-sm" onclick="openUploadModal(<?= (int)$rev['id'] ?>)" style="font-size:12px; padding:4px 10px; display:inline-flex; align-items:center; gap:6px; border:1px solid #cbd5e1; border-radius:6px; background:#fff;">
+                                            <i class="fas fa-plus" style="color:var(--primary);"></i> Add Photos
+                                        </button>
+                                    </div>
+
+                                    <div class="review-thumbnails-grid" id="thumbnails-grid-<?= (int)$rev['id'] ?>">
+                                        <?php if (!empty($revImages)): ?>
+                                            <?php foreach ($revImages as $img): 
+                                                $imgUrl = reviewImageUrl($img['image']) ?: ('../review_folder/' . rawurlencode($img['image']));
+                                            ?>
+                                                <div class="review-thumb-item" id="thumb-item-<?= (int)$img['id'] ?>">
+                                                    <img src="<?= e($imgUrl) ?>" alt="Review Photo" onclick="previewImage('<?= e($imgUrl) ?>')" title="Click to view full photo">
+                                                    <button type="button" class="btn-del-thumb" onclick="deleteSinglePhoto(<?= (int)$img['id'] ?>, <?= (int)$rev['id'] ?>)" title="Delete this photo from review">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <span class="no-photos-msg" style="font-size:12px; color:var(--text-muted); font-style:italic;">No photos uploaded with this review.</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="review-card-footer">
@@ -555,6 +678,49 @@ $csrf = csrfToken();
     <span id="toast-text">Action completed successfully.</span>
 </div>
 
+<!-- Admin Upload Photos Modal -->
+<div id="adminUploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:99999; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    <div style="background:#fff; border-radius:16px; width:100%; max-width:480px; box-shadow:0 20px 40px rgba(0,0,0,0.2); overflow:hidden; animation:reviewModalPop 0.25s ease;">
+        <div style="padding:18px 24px; background:linear-gradient(135deg, var(--dark), var(--dark-lighter)); color:#fff; display:flex; align-items:center; justify-content:space-between;">
+            <h4 style="margin:0; font-size:16px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-camera-retro" style="color:var(--accent);"></i> Add Photos to Review
+            </h4>
+            <button type="button" onclick="closeUploadModal()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="adminUploadForm" onsubmit="submitAdminUpload(event)" style="padding:22px 24px;">
+            <input type="hidden" name="id" id="uploadModalReviewId" value="">
+            <input type="hidden" name="action" value="upload_images">
+            <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+            <input type="hidden" name="ajax" value="1">
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:8px;">
+                    Select Photos (JPG, PNG, WebP, GIF · Max 5MB each)
+                </label>
+                <input type="file" name="review_images[]" id="adminImagesInput" multiple accept="image/*" required style="width:100%; padding:12px; border:1.5px dashed #cbd5e1; border-radius:8px; font-size:13px; background:#f8fafc; cursor:pointer; box-sizing:border-box;" onchange="previewAdminSelectedImages(this)">
+                <div id="adminFilePreviewStrip" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closeUploadModal()" class="btn btn-ghost btn-sm" style="padding:8px 16px;">Cancel</button>
+                <button type="submit" id="adminUploadBtn" class="btn btn-primary btn-sm" style="padding:8px 18px; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fas fa-cloud-upload-alt"></i> Upload Photos
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Admin Lightbox Modal -->
+<div id="adminLightbox" onclick="closeAdminLightbox()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; cursor:zoom-out;">
+    <button type="button" onclick="closeAdminLightbox()" style="position:absolute; top:20px; right:25px; background:rgba(255,255,255,0.2); border:none; color:#fff; width:40px; height:40px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Close preview">
+        <i class="fas fa-times"></i>
+    </button>
+    <img id="adminLightboxImg" src="" alt="Full Preview" style="max-width:90vw; max-height:85vh; border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,0.5); object-fit:contain;" onclick="event.stopPropagation()">
+</div>
+
 <script>
 const CSRF_TOKEN = <?= json_encode($csrf) ?>;
 
@@ -576,6 +742,174 @@ function showToast(msg, isSuccess = true) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3500);
+}
+
+function previewImage(url) {
+    const lb = document.getElementById('adminLightbox');
+    const img = document.getElementById('adminLightboxImg');
+    img.src = url;
+    lb.style.display = 'flex';
+}
+
+function closeAdminLightbox() {
+    const lb = document.getElementById('adminLightbox');
+    lb.style.display = 'none';
+    document.getElementById('adminLightboxImg').src = '';
+}
+
+function deleteSinglePhoto(imageId, reviewId) {
+    if (!confirm('Are you sure you want to remove this photo from the review? The image file will be deleted.')) {
+        return;
+    }
+
+    const thumb = document.getElementById('thumb-item-' + imageId);
+    if (thumb) {
+        thumb.style.opacity = '0.5';
+        thumb.style.pointerEvents = 'none';
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'delete_image');
+    formData.append('image_id', imageId);
+    formData.append('id', reviewId);
+    formData.append('csrf_token', CSRF_TOKEN);
+    formData.append('ajax', '1');
+
+    fetch('review-action.php', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            showToast(data.message || 'Photo removed successfully.', true);
+            if (thumb) {
+                thumb.style.transform = 'scale(0.8)';
+                thumb.style.opacity = '0';
+                setTimeout(() => {
+                    thumb.remove();
+                    // Update badge
+                    const badge = document.getElementById('photo-count-' + reviewId);
+                    if (badge) {
+                        badge.textContent = data.remaining_count + ' photo' + (data.remaining_count !== 1 ? 's' : '');
+                    }
+                    const grid = document.getElementById('thumbnails-grid-' + reviewId);
+                    if (grid && data.remaining_count === 0) {
+                        grid.innerHTML = '<span class="no-photos-msg" style="font-size:12px; color:var(--text-muted); font-style:italic;">No photos uploaded with this review.</span>';
+                    }
+                }, 200);
+            }
+        } else {
+            if (thumb) {
+                thumb.style.opacity = '1';
+                thumb.style.pointerEvents = 'auto';
+            }
+            showToast(data.error || 'Failed to remove photo.', false);
+        }
+    })
+    .catch(err => {
+        if (thumb) {
+            thumb.style.opacity = '1';
+            thumb.style.pointerEvents = 'auto';
+        }
+        showToast('Network error while deleting photo.', false);
+    });
+}
+
+function openUploadModal(reviewId) {
+    document.getElementById('uploadModalReviewId').value = reviewId;
+    document.getElementById('adminImagesInput').value = '';
+    document.getElementById('adminFilePreviewStrip').innerHTML = '';
+    document.getElementById('adminUploadModal').style.display = 'flex';
+}
+
+function closeUploadModal() {
+    document.getElementById('adminUploadModal').style.display = 'none';
+}
+
+function previewAdminSelectedImages(input) {
+    const strip = document.getElementById('adminFilePreviewStrip');
+    strip.innerHTML = '';
+    if (!input.files || input.files.length === 0) return;
+
+    Array.from(input.files).forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const div = document.createElement('div');
+            div.className = 'preview-mini-chip';
+            div.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            strip.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function submitAdminUpload(e) {
+    e.preventDefault();
+    const form = document.getElementById('adminUploadForm');
+    const btn = document.getElementById('adminUploadBtn');
+    const reviewId = document.getElementById('uploadModalReviewId').value;
+    const originalText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+    const formData = new FormData(form);
+
+    fetch('review-action.php', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        if (data.ok) {
+            showToast(data.message || 'Photos uploaded successfully!', true);
+            closeUploadModal();
+
+            // Append new thumbnails to the review card
+            const grid = document.getElementById('thumbnails-grid-' + reviewId);
+            const noMsg = grid ? grid.querySelector('.no-photos-msg') : null;
+            if (noMsg) noMsg.remove();
+
+            if (grid && data.uploaded && Array.isArray(data.uploaded)) {
+                data.uploaded.forEach(item => {
+                    const thumbDiv = document.createElement('div');
+                    thumbDiv.className = 'review-thumb-item';
+                    thumbDiv.id = 'thumb-item-' + item.id;
+                    thumbDiv.innerHTML = `
+                        <img src="${item.url}" alt="Review Photo" onclick="previewImage('${item.url}')" title="Click to view full photo">
+                        <button type="button" class="btn-del-thumb" onclick="deleteSinglePhoto(${item.id}, ${reviewId})" title="Delete this photo from review">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    grid.appendChild(thumbDiv);
+                });
+
+                // Update count badge
+                const allThumbs = grid.querySelectorAll('.review-thumb-item');
+                const badge = document.getElementById('photo-count-' + reviewId);
+                if (badge) {
+                    badge.textContent = allThumbs.length + ' photo' + (allThumbs.length !== 1 ? 's' : '');
+                }
+            }
+        } else {
+            showToast(data.error || 'Failed to upload photos.', false);
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        showToast('Network error during photo upload.', false);
+    });
 }
 
 function handleReviewAction(id, action) {
@@ -640,7 +974,7 @@ function handleReviewAction(id, action) {
 }
 
 function deleteReview(id) {
-    if (!confirm('Are you sure you want to permanently delete this review? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to permanently delete this review and all its photos? This action cannot be undone.')) {
         return;
     }
     

@@ -24,6 +24,17 @@ try {
     $totalReviews   = (int)$pdo->query("SELECT COUNT(*) FROM user_reviews")->fetchColumn();
     $pendingReviews = (int)$pdo->query("SELECT COUNT(*) FROM user_reviews WHERE status = 'pending'")->fetchColumn();
     $recentPendingReviews = $pdo->query("SELECT * FROM user_reviews WHERE status = 'pending' ORDER BY created_at DESC LIMIT 5")->fetchAll();
+    
+    $pendingReviewPhotoCounts = [];
+    if (!empty($recentPendingReviews)) {
+        $prIds = array_column($recentPendingReviews, 'id');
+        $placeholders = implode(',', array_fill(0, count($prIds), '?'));
+        $pImgStmt = $pdo->prepare("SELECT review_id, COUNT(*) as cnt FROM review_images WHERE review_id IN ($placeholders) GROUP BY review_id");
+        $pImgStmt->execute($prIds);
+        while ($pRow = $pImgStmt->fetch()) {
+            $pendingReviewPhotoCounts[$pRow['review_id']] = (int)$pRow['cnt'];
+        }
+    }
 } catch (Throwable $e) {}
 
 // Recent activity
@@ -844,6 +855,12 @@ if ($page > $totalPages) $page = $totalPages;
                                         <?php for ($s=1;$s<=(int)$pr['rating'];$s++): ?><i class="fas fa-star"></i><?php endfor; ?>
                                     </span>
                                     <span style="font-size:12px;color:var(--text-muted);"><?= date('M j, Y g:i A', strtotime($pr['created_at'])) ?></span>
+                                    <?php $pCnt = $pendingReviewPhotoCounts[$pr['id']] ?? 0; ?>
+                                    <?php if ($pCnt > 0): ?>
+                                        <span style="font-size:11px;background:rgba(217,108,63,0.12);color:var(--primary);padding:2px 8px;border-radius:10px;font-weight:700;">
+                                            <i class="fas fa-camera"></i> <?= $pCnt ?> photo<?= $pCnt > 1 ? 's' : '' ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                                 <div style="font-size:13px;color:#475569;line-height:1.5;">
                                     <?= !empty($pr['review_title']) ? '<strong>' . e($pr['review_title']) . ':</strong> ' : '' ?>"<?= e(mb_strimwidth($pr['review_text'], 0, 160, '...')) ?>"

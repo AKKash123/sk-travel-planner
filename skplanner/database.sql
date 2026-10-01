@@ -671,3 +671,15 @@ VALUES
     (3, 'Ananya Sharma', 'ananya.sh@example.com', 'Bengaluru (Darjeeling & Sikkim)', 5, 'Spectacular mountain views & top hospitality', 'Booked the Darjeeling and Gangtok adventure for our college reunion group. The hotel selections had mesmerizing views of Mount Kanchenjunga, and our local guide was incredibly knowledgeable. Best travel planner we have worked with!', 'approved', NOW() - INTERVAL 2 DAY),
     (4, 'Devendra Joshi', 'd.joshi@example.com', 'Ahmedabad (Kerala Cruise)', 4, 'Wonderful houseboat experience in Alleppey', 'Very good planning and authentic South Indian cuisine on the houseboat. The driver was punctual and courteous. A memorable holiday with family. Would love to book again next winter!', 'pending', NOW() - INTERVAL 1 HOUR)
 ON DUPLICATE KEY UPDATE id=id;
+
+-- ============================================
+-- 10. REVIEW IMAGES TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS review_images (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    review_id  INT NOT NULL,
+    image      VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_review_id (review_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

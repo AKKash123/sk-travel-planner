@@ -46,15 +46,26 @@ try {
 // Best 3 Approved User Reviews for "What Users Say" section
 // ---------------------------------------------------------
 $bestReviews = [];
+$bestReviewImages = [];
 try {
     $brStmt = $pdo->prepare(
         "SELECT * FROM user_reviews 
          WHERE status = 'approved' 
          ORDER BY rating DESC, created_at DESC, id DESC 
-         LIMIT 3"
+         LIMIT 15"
     );
     $brStmt->execute();
     $bestReviews = $brStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!empty($bestReviews)) {
+        $brIds = array_column($bestReviews, 'id');
+        $placeholders = implode(',', array_fill(0, count($brIds), '?'));
+        $imgStmt = $pdo->prepare("SELECT * FROM review_images WHERE review_id IN ($placeholders) ORDER BY id ASC");
+        $imgStmt->execute($brIds);
+        while ($imgRow = $imgStmt->fetch(PDO::FETCH_ASSOC)) {
+            $bestReviewImages[$imgRow['review_id']][] = $imgRow['image'];
+        }
+    }
 } catch (Throwable $e) {
     error_log('User reviews query failed: ' . $e->getMessage());
 }
@@ -963,70 +974,106 @@ $appConfig = [
             </div>
         </div>
 
-        <!-- 3 Best Reviews Cards Grid -->
+        <!-- Reviews Carousel Container -->
         <?php if (!empty($bestReviews)): ?>
-            <div class="reviews-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:28px; margin-bottom:40px;">
-                <?php foreach ($bestReviews as $rev): 
-                    $initials = '';
-                    $words = explode(' ', trim($rev['user_name']));
-                    foreach (array_slice($words, 0, 2) as $w) {
-                        $initials .= mb_substr($w, 0, 1);
-                    }
-                ?>
-                    <div class="user-review-card" style="background:#ffffff; border-radius:18px; padding:32px 28px; box-shadow:0 8px 30px rgba(0,0,0,0.05); border:1px solid rgba(217,108,63,0.12); position:relative; display:flex; flex-direction:column; justify-content:space-between; transition:transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s; overflow:hidden;">
-                        
-                        <!-- Top quote decorative icon -->
-                        <div style="position:absolute; top:20px; right:24px; font-size:36px; color:rgba(217,108,63,0.1); pointer-events:none;">
-                            <i class="fas fa-quote-right"></i>
-                        </div>
+            <div class="reviews-carousel-outer" id="reviewsCarouselOuter">
+                
+                <!-- Track Viewport -->
+                <div class="reviews-carousel-viewport" id="reviewsCarouselViewport">
+                    <div class="reviews-carousel-track" id="reviewsCarouselTrack">
+                        <?php foreach ($bestReviews as $revIdx => $rev): 
+                            $initials = '';
+                            $words = explode(' ', trim($rev['user_name']));
+                            foreach (array_slice($words, 0, 2) as $w) {
+                                $initials .= mb_substr($w, 0, 1);
+                            }
+                        ?>
+                            <div class="reviews-carousel-slide" data-slide-index="<?= $revIdx ?>">
+                                <div class="user-review-card">
+                                    
+                                    <!-- Top quote decorative icon -->
+                                    <div class="review-card-quote">
+                                        <i class="fas fa-quote-right"></i>
+                                    </div>
 
-                        <div>
-                            <!-- Star Rating -->
-                            <div style="display:flex; align-items:center; gap:3px; color:#f59e0b; font-size:17px; margin-bottom:14px;">
-                                <?php for ($s = 1; $s <= 5; $s++): ?>
-                                    <i class="<?= $s <= (int)$rev['rating'] ? 'fas' : 'far' ?> fa-star"></i>
-                                <?php endfor; ?>
-                                <span style="font-size:13px; font-weight:700; color:var(--dark); margin-left:6px; background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:12px;">
-                                    <?= (int)$rev['rating'] ?>.0 / 5
-                                </span>
-                            </div>
+                                    <div class="review-card-top-content">
+                                        <!-- Star Rating -->
+                                        <div class="review-stars-row">
+                                            <div class="review-stars-icons">
+                                                <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                    <i class="<?= $s <= (int)$rev['rating'] ? 'fas' : 'far' ?> fa-star"></i>
+                                                <?php endfor; ?>
+                                            </div>
+                                            <span class="review-stars-pill">
+                                                <?= (int)$rev['rating'] ?>.0 / 5
+                                            </span>
+                                        </div>
 
-                            <!-- Review Title -->
-                            <?php if (!empty($rev['review_title'])): ?>
-                                <h4 style="font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--dark); margin-bottom:12px; line-height:1.4;">
-                                    <?= e($rev['review_title']) ?>
-                                </h4>
-                            <?php endif; ?>
+                                        <!-- Review Title -->
+                                        <?php if (!empty($rev['review_title'])): ?>
+                                            <h4 class="review-card-title">
+                                                <?= e($rev['review_title']) ?>
+                                            </h4>
+                                        <?php endif; ?>
 
-                            <!-- Review Text -->
-                            <p style="font-size:15px; line-height:1.7; color:#475569; margin-bottom:24px; font-style:italic;">
-                                "<?= nl2br(e($rev['review_text'])) ?>"
-                            </p>
-                        </div>
+                                        <!-- Review Text -->
+                                        <p class="review-card-text">
+                                            "<?= nl2br(e($rev['review_text'])) ?>"
+                                        </p>
 
-                        <!-- Reviewer Info -->
-                        <div style="border-top:1px solid #f1f5f9; padding-top:18px; display:flex; align-items:center; gap:14px;">
-                            <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--accent)); color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; text-transform:uppercase; flex-shrink:0; box-shadow:0 4px 10px rgba(217,108,63,0.25);">
-                                <?= e($initials ?: 'U') ?>
-                            </div>
-                            <div style="flex:1; min-width:0;">
-                                <div style="font-weight:700; color:var(--dark); font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                    <?= e($rev['user_name']) ?>
+                                        <!-- Review Attached Photos Gallery -->
+                                        <?php $revPhotos = $bestReviewImages[$rev['id']] ?? []; ?>
+                                        <?php if (!empty($revPhotos)): ?>
+                                            <div class="review-gallery-strip">
+                                                <?php foreach ($revPhotos as $pImg): 
+                                                    $pUrl = reviewImageUrl($pImg) ?: ('review_folder/' . rawurlencode($pImg));
+                                                ?>
+                                                    <div class="user-photo-thumb" onclick="openPublicLightbox('<?= e($pUrl) ?>')" title="Click to enlarge photo">
+                                                        <img src="<?= e($pUrl) ?>" alt="Vacation photo by <?= e($rev['user_name']) ?>" loading="lazy">
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <!-- Reviewer Info -->
+                                    <div class="reviewer-footer-row">
+                                        <div class="reviewer-avatar">
+                                            <?= e($initials ?: 'U') ?>
+                                        </div>
+                                        <div class="reviewer-meta">
+                                            <div class="reviewer-name">
+                                                <?= e($rev['user_name']) ?>
+                                            </div>
+                                            <div class="reviewer-sub">
+                                                <?php if (!empty($rev['user_location'])): ?>
+                                                    <span class="reviewer-loc"><i class="fas fa-map-marker-alt"></i> <?= e($rev['user_location']) ?></span>
+                                                    <span class="sep">·</span>
+                                                <?php endif; ?>
+                                                <span class="verified-tag">
+                                                    <i class="fas fa-check-circle"></i> Verified Traveler
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
-                                <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
-                                    <?php if (!empty($rev['user_location'])): ?>
-                                        <span><i class="fas fa-map-marker-alt" style="color:var(--primary); font-size:11px;"></i> <?= e($rev['user_location']) ?></span>
-                                        <span>·</span>
-                                    <?php endif; ?>
-                                    <span style="color:#059669; font-weight:600; display:inline-flex; align-items:center; gap:3px;">
-                                        <i class="fas fa-check-circle" style="font-size:11px;"></i> Verified Traveler
-                                    </span>
-                                </div>
                             </div>
-                        </div>
-
+                        <?php endforeach; ?>
                     </div>
-                <?php endforeach; ?>
+                </div>
+
+                <!-- Carousel Navigation Controls -->
+                <button type="button" class="rev-carousel-btn rev-carousel-prev" id="revCarouselPrev" aria-label="Previous review slide">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" class="rev-carousel-btn rev-carousel-next" id="revCarouselNext" aria-label="Next review slide">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+                <!-- Pagination Dots Indicator -->
+                <div class="reviews-carousel-dots" id="reviewsCarouselDots" role="tablist" aria-label="Review slide indicators"></div>
+
             </div>
         <?php else: ?>
             <div style="background:#fff; border-radius:16px; padding:40px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.05); max-width:600px; margin:0 auto 30px;">
@@ -1124,7 +1171,7 @@ $appConfig = [
                 </div>
 
                 <!-- Two Columns: Email & Tour/Location -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+                <div class="modal-two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
                     <div>
                         <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
                             Email Address <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Private)</span>
@@ -1148,12 +1195,33 @@ $appConfig = [
                 </div>
 
                 <!-- Review Message -->
-                <div style="margin-bottom:20px;">
+                <div style="margin-bottom:18px;">
                     <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
                         Your Review <span style="color:#ef4444;">*</span>
                     </label>
                     <textarea name="review_text" rows="4" required minlength="10" placeholder="Tell other travelers about the hotels, guides, transport, and overall support..." style="width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical; box-sizing:border-box; line-height:1.5;"></textarea>
                     <span style="font-size:12px; color:var(--text-muted);">Minimum 10 characters</span>
+                </div>
+
+                <!-- Multiple Vacation Photos Upload -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">
+                        <i class="fas fa-camera" style="color:var(--primary); margin-right:4px;"></i> Vacation Photos <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(Optional — Add up to 5 photos)</span>
+                    </label>
+                    <div id="reviewDropzone" onclick="document.getElementById('publicReviewImagesInput').click()" style="border:2px dashed #fed7aa; border-radius:12px; padding:16px 20px; text-align:center; background:#fffcf9; cursor:pointer; transition:all 0.2s;">
+                        <input type="file" name="review_images[]" id="publicReviewImagesInput" multiple accept="image/png, image/jpeg, image/jpg, image/webp, image/gif" style="display:none;" onchange="handleReviewImagesSelected(this)">
+                        <div style="font-size:24px; color:var(--primary); margin-bottom:4px;">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <div style="font-size:13px; font-weight:700; color:var(--dark); margin-bottom:2px;">
+                            Click to upload photos from your vacation
+                        </div>
+                        <div style="font-size:11px; color:var(--text-muted);">
+                            JPG, PNG, WebP or GIF · Up to 5 photos, max 5MB each
+                        </div>
+                    </div>
+                    <!-- Selected Images Preview List -->
+                    <div id="reviewSelectedThumbnails" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
                 </div>
 
                 <!-- Submit Button -->
@@ -1175,15 +1243,310 @@ $appConfig = [
 
 </div>
 
+<!-- Public Review Photo Lightbox -->
+<div id="publicReviewLightbox" onclick="closePublicReviewLightbox()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999999; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; cursor:zoom-out;">
+    <button type="button" onclick="closePublicReviewLightbox()" style="position:absolute; top:20px; right:25px; background:rgba(255,255,255,0.2); border:none; color:#fff; width:40px; height:40px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Close">
+        <i class="fas fa-times"></i>
+    </button>
+    <img id="publicReviewLightboxImg" src="" alt="Review Photo" style="max-width:90vw; max-height:85vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.6); object-fit:contain;" onclick="event.stopPropagation()">
+</div>
+
 <style>
 @keyframes reviewModalPop {
     from { opacity: 0; transform: scale(0.92) translateY(15px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.user-review-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 14px 35px rgba(217, 108, 63, 0.12) !important;
+
+/* =========================================================
+   REVIEWS CAROUSEL CORE STYLES
+========================================================= */
+.reviews-carousel-outer {
+    position: relative;
+    width: 100%;
+    margin-bottom: 40px;
+    padding: 0 46px;
+    box-sizing: border-box;
 }
+
+.reviews-carousel-viewport {
+    overflow: hidden;
+    width: 100%;
+    border-radius: 20px;
+    touch-action: pan-y pinch-zoom;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.reviews-carousel-viewport.is-dragging {
+    cursor: grabbing;
+}
+
+.reviews-carousel-track {
+    display: flex;
+    transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.reviews-carousel-slide {
+    flex-shrink: 0;
+    width: 33.333333%;
+    padding: 12px;
+    box-sizing: border-box;
+    display: flex;
+}
+
+/* User Review Card inside Carousel Slide */
+.reviews-carousel-slide .user-review-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 30px 26px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(217, 108, 63, 0.12);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s;
+    overflow: hidden;
+}
+
+.reviews-carousel-slide .user-review-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 16px 36px rgba(217, 108, 63, 0.14) !important;
+    border-color: rgba(217, 108, 63, 0.3);
+}
+
+.review-card-quote {
+    position: absolute;
+    top: 20px;
+    right: 22px;
+    font-size: 32px;
+    color: rgba(217, 108, 63, 0.1);
+    pointer-events: none;
+}
+
+.review-stars-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.review-stars-icons {
+    color: #f59e0b;
+    font-size: 16px;
+    display: inline-flex;
+    gap: 2px;
+}
+
+.review-stars-pill {
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: 6px;
+    background: #fef3c7;
+    color: #b45309;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.review-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--dark);
+    margin: 0 0 10px 0;
+    line-height: 1.35;
+}
+
+.review-card-text {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #475569;
+    margin: 0 0 16px 0;
+    font-style: italic;
+}
+
+/* Photo Gallery Strip in Card */
+.review-gallery-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.user-photo-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #fed7aa;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
+}
+
+.user-photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.user-photo-thumb:hover {
+    transform: translateY(-2px) scale(1.05);
+    border-color: var(--primary) !important;
+    box-shadow: 0 4px 12px rgba(217, 108, 63, 0.25) !important;
+}
+
+/* Reviewer Footer */
+.reviewer-footer-row {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.reviewer-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(217, 108, 63, 0.25);
+}
+
+.reviewer-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.reviewer-name {
+    font-weight: 700;
+    color: var(--dark);
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reviewer-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+.reviewer-loc i {
+    color: var(--primary);
+    font-size: 11px;
+}
+
+.verified-tag {
+    color: #059669;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+}
+
+/* Carousel Buttons */
+.rev-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1.5px solid rgba(217, 108, 63, 0.25);
+    color: var(--primary);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    z-index: 5;
+    outline: none;
+}
+
+.rev-carousel-btn:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 6px 18px rgba(217, 108, 63, 0.3);
+}
+
+.rev-carousel-btn:active {
+    transform: translateY(-50%) scale(0.96);
+}
+
+.rev-carousel-prev {
+    left: 0;
+}
+
+.rev-carousel-next {
+    right: 0;
+}
+
+/* Carousel Pagination Dots */
+.reviews-carousel-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.rev-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background: #cbd5e1;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+}
+
+.rev-dot:hover {
+    background: #94a3b8;
+}
+
+.rev-dot.active {
+    width: 28px;
+    background: var(--primary);
+    border-radius: 12px;
+}
+
+#reviewDropzone:hover {
+    border-color: var(--primary) !important;
+    background-color: #fff7ed !important;
+}
+
 .m-star {
     transition: transform 0.15s, color 0.15s;
     user-select: none;
@@ -1191,9 +1554,185 @@ $appConfig = [
 .m-star:hover {
     transform: scale(1.2);
 }
+
+/* =========================================================
+   RESPONSIVE BREAKPOINTS & MOBILE OPTIMIZATIONS
+========================================================= */
+@media (max-width: 1024px) {
+    .reviews-carousel-slide {
+        width: 50%;
+        padding: 10px;
+    }
+    .reviews-carousel-outer {
+        padding: 0 42px;
+    }
+}
+
+@media (max-width: 640px) {
+    .reviews-section {
+        padding: 48px 0 !important;
+    }
+    .reviews-carousel-outer {
+        padding: 0 10px;
+        margin-bottom: 30px;
+    }
+    .reviews-carousel-slide {
+        width: 100%;
+        padding: 6px 2px;
+    }
+    .reviews-carousel-slide .user-review-card {
+        padding: 22px 18px;
+        border-radius: 16px;
+    }
+    .review-card-title {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+    .review-card-text {
+        font-size: 13.5px;
+        margin-bottom: 14px;
+        line-height: 1.55;
+    }
+    .user-photo-thumb {
+        width: 52px;
+        height: 52px;
+        border-radius: 8px;
+    }
+    .rev-carousel-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .rev-carousel-prev {
+        left: -4px;
+    }
+    .rev-carousel-next {
+        right: -4px;
+    }
+    .reviews-carousel-dots {
+        margin-top: 18px;
+    }
+    /* Modal responsive adjustments for mobile */
+    #reviewModal {
+        padding: 12px !important;
+    }
+    #reviewModal > div {
+        max-height: 94vh !important;
+        border-radius: 16px !important;
+    }
+    .modal-two-col {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    #reviewModal input,
+    #reviewModal textarea {
+        font-size: 16px !important; /* Prevents mobile Safari auto-zoom */
+    }
+}
+
+@media (max-width: 400px) {
+    .rev-carousel-btn {
+        display: none !important; /* Swipe gesture takes over smoothly on small screens */
+    }
+    .reviews-carousel-outer {
+        padding: 0;
+    }
+}
 </style>
 
 <script>
+// Public Review Photo Lightbox
+function openPublicLightbox(url) {
+    const lb = document.getElementById('publicReviewLightbox');
+    const img = document.getElementById('publicReviewLightboxImg');
+    img.src = url;
+    lb.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closePublicReviewLightbox() {
+    const lb = document.getElementById('publicReviewLightbox');
+    lb.style.display = 'none';
+    document.getElementById('publicReviewLightboxImg').src = '';
+    document.body.style.overflow = '';
+}
+
+// Client-side Selected Images Manager for Review Form
+let reviewSelectedFiles = [];
+
+function handleReviewImagesSelected(input) {
+    const alertBox = document.getElementById('reviewAlertBox');
+    if (!input.files || input.files.length === 0) return;
+
+    alertBox.style.display = 'none';
+    const incoming = Array.from(input.files);
+
+    for (let f of incoming) {
+        if (!f.type.startsWith('image/')) {
+            alertBox.textContent = 'Only image files (JPG, PNG, WebP, GIF) are allowed.';
+            alertBox.style.display = 'block';
+            continue;
+        }
+        if (f.size > 5 * 1024 * 1024) {
+            alertBox.textContent = f.name + ' exceeds 5MB size limit.';
+            alertBox.style.display = 'block';
+            continue;
+        }
+        if (reviewSelectedFiles.length < 5) {
+            if (!reviewSelectedFiles.some(existing => existing.name === f.name && existing.size === f.size)) {
+                reviewSelectedFiles.push(f);
+            }
+        } else {
+            alertBox.textContent = 'Maximum 5 photos can be uploaded with a review.';
+            alertBox.style.display = 'block';
+            break;
+        }
+    }
+    syncReviewFilesInput();
+    renderReviewThumbnails();
+}
+
+function syncReviewFilesInput() {
+    const input = document.getElementById('publicReviewImagesInput');
+    if (!input) return;
+    try {
+        const dt = new DataTransfer();
+        reviewSelectedFiles.forEach(file => dt.items.add(file));
+        input.files = dt.files;
+    } catch(e) {}
+}
+
+function removeReviewFile(index) {
+    reviewSelectedFiles.splice(index, 1);
+    syncReviewFilesInput();
+    renderReviewThumbnails();
+}
+
+function renderReviewThumbnails() {
+    const previewContainer = document.getElementById('reviewSelectedThumbnails');
+    if (!previewContainer) return;
+    previewContainer.innerHTML = '';
+
+    reviewSelectedFiles.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const chip = document.createElement('div');
+            chip.style.cssText = 'position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden; border:2px solid #fed7aa; box-shadow:0 2px 6px rgba(0,0,0,0.06); flex-shrink:0;';
+            chip.innerHTML = `
+                <img src="${e.target.result}" alt="Preview" style="width:100%; height:100%; object-fit:cover; display:block;">
+                <button type="button" onclick="removeReviewFile(${idx})" title="Remove photo" style="position:absolute; top:2px; right:2px; width:18px; height:18px; background:rgba(239,68,68,0.92); color:#fff; border:none; border-radius:50%; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            previewContainer.appendChild(chip);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // Interactive Review Modal Logic
 function openReviewModal() {
     const modal = document.getElementById('reviewModal');
@@ -1205,6 +1744,9 @@ function closeReviewModal() {
     const modal = document.getElementById('reviewModal');
     modal.style.display = 'none';
     document.body.style.overflow = '';
+    reviewSelectedFiles = [];
+    syncReviewFilesInput();
+    renderReviewThumbnails();
 }
 
 // Star Rating Interactive Picker
@@ -1336,6 +1878,347 @@ function submitLiveReview(e) {
         alertBox.style.display = 'block';
     });
 }
+
+// =========================================================
+// REVIEWS CAROUSEL CONTROLLER (Responsive & Touch-Optimized)
+// =========================================================
+(function initReviewsCarousel() {
+    const outer = document.getElementById('reviewsCarouselOuter');
+    const viewport = document.getElementById('reviewsCarouselViewport');
+    const track = document.getElementById('reviewsCarouselTrack');
+    const prevBtn = document.getElementById('revCarouselPrev');
+    const nextBtn = document.getElementById('revCarouselNext');
+    const dotsContainer = document.getElementById('reviewsCarouselDots');
+
+    if (!outer || !viewport || !track) return;
+
+    const slides = track.querySelectorAll('.reviews-carousel-slide');
+    if (!slides || slides.length === 0) return;
+
+    let currentIndex = 0;
+    let maxIndex = 0;
+    let autoplayTimer = null;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let currentDragDiff = 0;
+    let isHorizontalGesture = null;
+    let hasMovedSignificantly = false;
+
+    function getVisibleCount() {
+        const w = window.innerWidth;
+        if (w <= 640) return 1;
+        if (w <= 1024) return 2;
+        return 3;
+    }
+
+    function getSlideWidth() {
+        if (!slides[0]) return viewport.clientWidth;
+        return slides[0].getBoundingClientRect().width || (viewport.clientWidth / getVisibleCount());
+    }
+
+    function calculateBounds() {
+        const visible = getVisibleCount();
+        maxIndex = Math.max(0, slides.length - visible);
+        if (currentIndex > maxIndex) {
+            currentIndex = maxIndex;
+        }
+        if (currentIndex < 0) {
+            currentIndex = 0;
+        }
+
+        // Show/hide controls if not enough slides
+        if (slides.length <= visible) {
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+            if (dotsContainer) dotsContainer.style.display = 'none';
+        } else {
+            if (prevBtn) prevBtn.style.display = '';
+            if (nextBtn) nextBtn.style.display = '';
+            if (dotsContainer) dotsContainer.style.display = 'flex';
+        }
+
+        buildDots();
+        moveToCurrent(false);
+    }
+
+    function buildDots() {
+        if (!dotsContainer) return;
+        dotsContainer.innerHTML = '';
+        const visible = getVisibleCount();
+        if (slides.length <= visible) return;
+
+        const totalDots = maxIndex + 1;
+        for (let i = 0; i < totalDots; i++) {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'rev-carousel-dot' + (i === currentIndex ? ' active' : '');
+            dot.setAttribute('aria-label', `Go to review slide ${i + 1} of ${totalDots}`);
+            dot.addEventListener('click', (e) => {
+                e.stopPropagation();
+                goToSlide(i);
+                restartAutoplay();
+            });
+            dotsContainer.appendChild(dot);
+        }
+    }
+
+    function updateDotsUI() {
+        if (!dotsContainer) return;
+        const dots = dotsContainer.querySelectorAll('.rev-carousel-dot');
+        dots.forEach((dot, idx) => {
+            dot.classList.toggle('active', idx === currentIndex);
+            dot.setAttribute('aria-current', idx === currentIndex ? 'true' : 'false');
+        });
+    }
+
+    function moveToCurrent(animate = true) {
+        const slideWidth = getSlideWidth();
+        const targetX = -1 * (currentIndex * slideWidth);
+        track.style.transition = animate ? 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)' : 'none';
+        track.style.transform = `translate3d(${targetX}px, 0px, 0px)`;
+        updateDotsUI();
+    }
+
+    function goToSlide(index) {
+        currentIndex = Math.max(0, Math.min(index, maxIndex));
+        moveToCurrent(true);
+    }
+
+    function nextSlide() {
+        if (currentIndex >= maxIndex) {
+            currentIndex = 0;
+        } else {
+            currentIndex++;
+        }
+        moveToCurrent(true);
+    }
+
+    function prevSlide() {
+        if (currentIndex <= 0) {
+            currentIndex = maxIndex;
+        } else {
+            currentIndex--;
+        }
+        moveToCurrent(true);
+    }
+
+    // Touch Event Handling for Mobile
+    viewport.addEventListener('touchstart', function(e) {
+        if (slides.length <= getVisibleCount()) return;
+        stopAutoplay();
+        isDragging = true;
+        isHorizontalGesture = null;
+        hasMovedSignificantly = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        currentDragDiff = 0;
+        track.style.transition = 'none';
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', function(e) {
+        if (!isDragging) return;
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const diffX = currentX - startX;
+        const diffY = currentY - startY;
+
+        if (isHorizontalGesture === null) {
+            if (Math.abs(diffX) > 6 || Math.abs(diffY) > 6) {
+                isHorizontalGesture = Math.abs(diffX) > Math.abs(diffY);
+            }
+        }
+
+        if (isHorizontalGesture === false) {
+            // Allow vertical scrolling naturally
+            return;
+        }
+
+        if (isHorizontalGesture === true) {
+            if (e.cancelable) e.preventDefault();
+            hasMovedSignificantly = true;
+            currentDragDiff = diffX;
+
+            // Rubber-band resistance at boundaries
+            let moveAmount = diffX;
+            if ((currentIndex === 0 && moveAmount > 0) || (currentIndex === maxIndex && moveAmount < 0)) {
+                moveAmount = moveAmount * 0.32;
+            }
+
+            const slideWidth = getSlideWidth();
+            const baseTranslate = -1 * (currentIndex * slideWidth);
+            track.style.transform = `translate3d(${baseTranslate + moveAmount}px, 0px, 0px)`;
+        }
+    }, { passive: false });
+
+    viewport.addEventListener('touchend', function() {
+        if (!isDragging) return;
+        isDragging = false;
+        viewport.classList.remove('is-dragging');
+
+        if (isHorizontalGesture === true && Math.abs(currentDragDiff) > 40) {
+            if (currentDragDiff < -40) {
+                if (currentIndex < maxIndex) currentIndex++;
+                else currentIndex = 0;
+            } else if (currentDragDiff > 40) {
+                if (currentIndex > 0) currentIndex--;
+                else currentIndex = maxIndex;
+            }
+        }
+        moveToCurrent(true);
+        startAutoplay();
+    }, { passive: true });
+
+    // Desktop Mouse Drag Handling
+    viewport.addEventListener('mousedown', function(e) {
+        if (e.button !== 0 || slides.length <= getVisibleCount()) return;
+        if (e.target.closest('button') || e.target.closest('a')) return;
+
+        stopAutoplay();
+        isDragging = true;
+        hasMovedSignificantly = false;
+        startX = e.clientX;
+        currentDragDiff = 0;
+        viewport.classList.add('is-dragging');
+        track.style.transition = 'none';
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        const diffX = e.clientX - startX;
+        if (Math.abs(diffX) > 4) {
+            hasMovedSignificantly = true;
+        }
+        currentDragDiff = diffX;
+
+        let moveAmount = diffX;
+        if ((currentIndex === 0 && moveAmount > 0) || (currentIndex === maxIndex && moveAmount < 0)) {
+            moveAmount = moveAmount * 0.32;
+        }
+
+        const slideWidth = getSlideWidth();
+        const baseTranslate = -1 * (currentIndex * slideWidth);
+        track.style.transform = `translate3d(${baseTranslate + moveAmount}px, 0px, 0px)`;
+    });
+
+    window.addEventListener('mouseup', function() {
+        if (!isDragging) return;
+        isDragging = false;
+        viewport.classList.remove('is-dragging');
+
+        if (Math.abs(currentDragDiff) > 45) {
+            if (currentDragDiff < -45) {
+                if (currentIndex < maxIndex) currentIndex++;
+                else currentIndex = 0;
+            } else if (currentDragDiff > 45) {
+                if (currentIndex > 0) currentIndex--;
+                else currentIndex = maxIndex;
+            }
+        }
+        moveToCurrent(true);
+        startAutoplay();
+    });
+
+    // Suppress child click when dragging
+    viewport.addEventListener('click', function(e) {
+        if (hasMovedSignificantly) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
+
+    // Prev / Next button clicks
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            prevSlide();
+            restartAutoplay();
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            nextSlide();
+            restartAutoplay();
+        });
+    }
+
+    // Keyboard Arrow navigation when viewport is focused
+    viewport.setAttribute('tabindex', '0');
+    viewport.setAttribute('role', 'region');
+    viewport.setAttribute('aria-roledescription', 'carousel');
+    viewport.setAttribute('aria-label', 'Customer Reviews Carousel');
+    viewport.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            prevSlide();
+            restartAutoplay();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            nextSlide();
+            restartAutoplay();
+        }
+    });
+
+    // Autoplay functionality (5.5s delay)
+    function startAutoplay() {
+        stopAutoplay();
+        if (slides.length <= getVisibleCount()) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        autoplayTimer = setInterval(function() {
+            if (document.hidden) return;
+            nextSlide();
+        }, 5500);
+    }
+
+    function stopAutoplay() {
+        if (autoplayTimer) {
+            clearInterval(autoplayTimer);
+            autoplayTimer = null;
+        }
+    }
+
+    function restartAutoplay() {
+        stopAutoplay();
+        startAutoplay();
+    }
+
+    outer.addEventListener('mouseenter', stopAutoplay);
+    outer.addEventListener('mouseleave', startAutoplay);
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) stopAutoplay();
+        else startAutoplay();
+    });
+
+    // Debounced Resize & Orientation change handler
+    let resizeTimer = null;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            calculateBounds();
+        }, 120);
+    });
+
+    // Initial setup
+    calculateBounds();
+    startAutoplay();
+})();
+
+// Global Escape Key Listener for Modals & Lightbox
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const lb = document.getElementById('publicReviewLightbox');
+        if (lb && lb.style.display !== 'none') {
+            closePublicReviewLightbox();
+            return;
+        }
+        const rm = document.getElementById('reviewModal');
+        if (rm && rm.style.display !== 'none') {
+            closeReviewModal();
+        }
+    }
+});
 </script>
 
 <!-- NEW FAQ SECTION -->
