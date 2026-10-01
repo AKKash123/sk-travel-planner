@@ -102,6 +102,7 @@ Options -Indexes
     # ========================================================
 
     RewriteRule ^uploads/.*\.(php[0-9]?|phtml|phar|cgi|pl|py|sh)$ - [F,L,NC]
+    RewriteRule ^review_folder/.*\.(php[0-9]?|phtml|phar|cgi|pl|py|sh)$ - [F,L,NC]
 
 
     # ========================================================

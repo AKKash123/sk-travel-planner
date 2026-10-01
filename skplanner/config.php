@@ -65,6 +65,16 @@ define(
 );
 
 define(
+    'REVIEW_UPLOAD_DIR',
+    __DIR__ . DIRECTORY_SEPARATOR . 'review_folder' . DIRECTORY_SEPARATOR
+);
+
+define(
+    'REVIEW_UPLOAD_URL',
+    rtrim(APP_URL, '/') . '/review_folder/'
+);
+
+define(
     'MAX_FILE_SIZE',
     5 * 1024 * 1024
 );
@@ -82,21 +92,23 @@ define(
 
 
 // ============================================================
-// CREATE UPLOAD DIRECTORY IF MISSING
-// ============================================================
-//
-// This prevents:
-// "uploads/ directory referenced by config.php
-// doesn't exist on disk"
+// CREATE UPLOAD & REVIEW DIRECTORIES IF MISSING
 // ============================================================
 
 if (!is_dir(UPLOAD_DIR)) {
-
     if (!@mkdir(UPLOAD_DIR, 0755, true)) {
-
         error_log(
             'SK Travel Planner - Unable to create upload directory: ' .
             UPLOAD_DIR
+        );
+    }
+}
+
+if (!is_dir(REVIEW_UPLOAD_DIR)) {
+    if (!@mkdir(REVIEW_UPLOAD_DIR, 0755, true)) {
+        error_log(
+            'SK Travel Planner - Unable to create review directory: ' .
+            REVIEW_UPLOAD_DIR
         );
     }
 }
@@ -205,6 +217,19 @@ try {
                 5
         ]
     );
+
+    // Auto-ensure review_images table exists
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `review_images` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `review_id` INT NOT NULL,
+            `image` VARCHAR(255) NOT NULL,
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX `idx_review_id` (`review_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+    } catch (Throwable $tblEx) {
+        error_log('SK Travel Planner - Review images table check: ' . $tblEx->getMessage());
+    }
 
 } catch (PDOException $e) {
 
@@ -801,6 +826,130 @@ function imageUrl(
             ($filename ?? 'default')
         ) .
         '/800/500';
+}
+
+
+// ============================================================
+// REVIEW IMAGE HELPERS
+// ============================================================
+
+/**
+ * Get review image URL or empty string.
+ */
+function reviewImageUrl(?string $filename): string {
+    if (
+        $filename &&
+        is_file(REVIEW_UPLOAD_DIR . basename($filename))
+    ) {
+        return rtrim(REVIEW_UPLOAD_URL, '/') . '/' . rawurlencode(basename($filename));
+    }
+    return '';
+}
+
+/**
+ * Upload multiple images for a review into review_folder.
+ *
+ * @param string $inputName Form file input name
+ * @param int $maxFiles Maximum number of files to process
+ * @return array List of generated image filenames saved in review_folder
+ */
+function uploadReviewImages(string $inputName = 'review_images', int $maxFiles = 5): array
+{
+    if (empty($_FILES[$inputName])) {
+        return [];
+    }
+
+    $files = $_FILES[$inputName];
+    $uploadedNames = [];
+
+    $isMultiple = is_array($files['name']);
+    $total = $isMultiple ? count($files['name']) : 1;
+    $count = min($total, $maxFiles);
+
+    $allowedMimes = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp'
+    ];
+
+    $extensionMap = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp'
+    ];
+
+    if (!is_dir(REVIEW_UPLOAD_DIR)) {
+        @mkdir(REVIEW_UPLOAD_DIR, 0755, true);
+    }
+
+    for ($i = 0; $i < $count; $i++) {
+        $name    = $isMultiple ? ($files['name'][$i] ?? '') : $files['name'];
+        $error   = $isMultiple ? ($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) : $files['error'];
+        $tmpName = $isMultiple ? ($files['tmp_name'][$i] ?? '') : $files['tmp_name'];
+        $size    = $isMultiple ? ($files['size'][$i] ?? 0) : $files['size'];
+
+        if ($error === UPLOAD_ERR_NO_FILE || empty($tmpName)) {
+            continue;
+        }
+
+        if ($error !== UPLOAD_ERR_OK || $size <= 0 || $size > MAX_FILE_SIZE) {
+            continue;
+        }
+
+        if (!is_uploaded_file($tmpName)) {
+            continue;
+        }
+
+        $imageInfo = @getimagesize($tmpName);
+        if ($imageInfo === false) {
+            continue;
+        }
+
+        $mime = $imageInfo['mime'] ?? '';
+        if (!in_array($mime, $allowedMimes, true)) {
+            continue;
+        }
+
+        $origExt = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if (!in_array($origExt, ALLOWED_EXT, true)) {
+            continue;
+        }
+
+        $ext = $extensionMap[$mime] ?? 'jpg';
+        try {
+            $randomPart = bin2hex(random_bytes(16));
+        } catch (Throwable $e) {
+            $randomPart = md5(uniqid((string)mt_rand(), true));
+        }
+
+        $newFilename = 'rev_' . $randomPart . '.' . $ext;
+        $destination = REVIEW_UPLOAD_DIR . $newFilename;
+
+        if (move_uploaded_file($tmpName, $destination)) {
+            @chmod($destination, 0644);
+            $uploadedNames[] = $newFilename;
+        }
+    }
+
+    return $uploadedNames;
+}
+
+/**
+ * Safely delete a review image file from review_folder.
+ */
+function deleteReviewImageFile(string $filename): bool
+{
+    $basename = basename($filename);
+    if (empty($basename) || str_contains($filename, '/') || str_contains($filename, '\\')) {
+        return false;
+    }
+    $targetPath = REVIEW_UPLOAD_DIR . $basename;
+    if (is_file($targetPath)) {
+        return @unlink($targetPath);
+    }
+    return false;
 }
 
 

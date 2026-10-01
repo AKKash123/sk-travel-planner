@@ -95,12 +95,33 @@ try {
         $reviewText,
     ]);
 
+    $reviewId = (int)$pdo->lastInsertId();
+
+    // Handle multiple review images into review_folder
+    $uploadedImages = [];
+    if (!empty($_FILES['review_images'])) {
+        $uploadedImages = uploadReviewImages('review_images', 5);
+        if (!empty($uploadedImages)) {
+            $imgStmt = $pdo->prepare('INSERT INTO review_images (review_id, image, created_at) VALUES (?, ?, NOW())');
+            foreach ($uploadedImages as $img) {
+                $imgStmt->execute([$reviewId, $img]);
+            }
+        }
+    }
+
+    $photoMsg = !empty($uploadedImages) ? ' with ' . count($uploadedImages) . ' photo' . (count($uploadedImages) > 1 ? 's' : '') : '';
+
     respond([
         'ok'      => true,
-        'message' => 'Thank you, ' . htmlspecialchars($userName, ENT_QUOTES, 'UTF-8') . '! Your review has been submitted successfully and will appear once approved by our team.',
+        'message' => 'Thank you, ' . htmlspecialchars($userName, ENT_QUOTES, 'UTF-8') . '! Your review' . $photoMsg . ' has been submitted successfully and will appear once approved by our team.',
     ], 200, $isAjax);
 
 } catch (Throwable $e) {
+    if (!empty($uploadedImages)) {
+        foreach ($uploadedImages as $img) {
+            deleteReviewImageFile($img);
+        }
+    }
     error_log('submit-review.php: ' . $e->getMessage());
     respond(['ok' => false, 'error' => 'An error occurred while saving your review. Please try again.'], 500, $isAjax);
 }

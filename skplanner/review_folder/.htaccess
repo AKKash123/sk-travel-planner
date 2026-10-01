@@ -1,0 +1,6 @@
+# Disable directory listing and script execution in review_folder
+Options -Indexes
+
+<FilesMatch "\.(php[0-9]?|phtml|phar|cgi|pl|py|sh|exe|bat|cmd)$">
+    Require all denied
+</FilesMatch>
