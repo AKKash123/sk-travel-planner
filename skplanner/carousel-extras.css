@@ -310,3 +310,6 @@
     border-color: rgba(255, 255, 255, .45);
 }
 .hero.hero-carousel .hc-place svg { color: var(--accent-light, #FFD166); flex: 0 0 auto; }
+.hc-dots {
+  display: none !important;
+}
