@@ -412,7 +412,7 @@ header('X-XSS-Protection: 1; mode=block');
 | Field | Value |
 |---|---|
 | **Username** | `admin` |
-| **Password** | `admin123` |
+| **Password** | `admin` |
 
 > ⚠️ **Change this immediately after installation.** Generate a new hash:
 >
@@ -518,7 +518,7 @@ header('X-XSS-Protection: 1; mode=block');
 - [x] Responsive design (mobile/tablet/desktop)
 - [x] Flash messages for user feedback
 - [x] Fallback placeholder images via Picsum
-
+# Review Section added in this file 
 ---
 
 ## 📄 License
