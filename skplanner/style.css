@@ -6417,3 +6417,102 @@ body.chatbot-open .floating-whatsapp {
     height: 18px !important;
   }
 }
+/* ---------- Variables ---------- */
+:root {
+    --topbar-bg: #0f172a;
+    --topbar-color: #ffffff;
+    --topbar-accent: #38bdf8; /* icon color */
+    --topbar-height: 40px;
+}
+
+/* ---------- Container fallback ----------
+   Remove this block if Bootstrap (or your framework)
+   already provides .container */
+.container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+@media (min-width: 576px)  { .container { max-width: 540px; } }
+@media (min-width: 768px)  { .container { max-width: 720px; } }
+@media (min-width: 992px)  { .container { max-width: 960px; } }
+@media (min-width: 1200px) { .container { max-width: 1140px; } }
+
+/* ---------- Top bar (mobile first) ---------- */
+.topbar {
+    background: var(--topbar-bg);
+    color: var(--topbar-color);
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.topbar-inner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 4px 16px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.topbar-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--topbar-color);
+    text-decoration: none;
+    opacity: 0.9;
+    padding: 4px 0;          /* bigger tap target on touch screens */
+    transition: opacity 0.2s ease;
+    word-break: break-word;
+}
+
+.topbar-link:hover,
+.topbar-link:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* Icon color for call and email */
+.topbar-link i {
+    color: var(--topbar-accent);
+}
+
+/* ---------- Very small phones: stack vertically ---------- */
+@media (max-width: 359px) {
+    .topbar-inner {
+        flex-direction: column;
+        gap: 2px;
+    }
+}
+
+/* ---------- Tablets (>= 576px) ---------- */
+@media (min-width: 576px) {
+    .topbar {
+        font-size: 0.8rem;
+    }
+    .topbar-inner {
+        gap: 4px 24px;
+    }
+}
+
+/* ---------- Desktop (>= 768px): align right ---------- */
+@media (min-width: 768px) {
+    .topbar {
+        font-size: 0.85rem;
+    }
+    .topbar-inner {
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+    }
+}
+
+/* ---------- Large screens (>= 1200px) ---------- */
+@media (min-width: 1200px) {
+    .topbar {
+        font-size: 0.9rem;
+    }
+}

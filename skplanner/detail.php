@@ -597,6 +597,18 @@ if (!function_exists('renderStars')) {
 <div class="toast" id="toast"></div>
 
 <!-- ============ NAVBAR ============ -->
+<div class="topbar">
+    <div class="container topbar-inner">
+        <a href="tel:+917810807552" class="topbar-link">
+            <i class="fas fa-phone-alt"></i>
+            <span>+91 78108 07552</span>
+        </a>
+        <a href="mailto:info@sktravelplanners.in" class="topbar-link">
+            <i class="fas fa-envelope"></i>
+            <span>info@sktravelplanners.in</span>
+        </a>
+    </div>
+</div>
 <nav class="navbar">
     <div class="container navbar-inner">
         <a href="index.php" class="navbar-brand">
