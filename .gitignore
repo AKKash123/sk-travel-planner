@@ -1,0 +1,17 @@
+# Ignore XAMPP default files
+/applications.html
+/bitnami.css
+/dashboard/
+/favicon.ico
+/img/
+/index.php
+/webalizer/
+/xampp/
+
+# Ignore temporary files & logs
+*.log
+skplanner/logs/*.log
+skplanner/.dist/
+skplanner/New Text Document.txt
+.DS_Store
+Thumbs.db

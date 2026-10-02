@@ -33,6 +33,11 @@ if (isset($pdo)) {
             </a>
         </li>
         <li>
+            <a href="gallery.php" class="<?= $current_page === 'gallery.php' ? 'active' : '' ?>">
+                <i class="fas fa-images"></i> Travel Gallery
+            </a>
+        </li>
+        <li>
             <a href="backup.php" class="<?= $current_page === 'backup.php' ? 'active' : '' ?>">
                 <i class="fas fa-database"></i> DB Backup
             </a>
