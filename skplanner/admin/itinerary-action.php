@@ -65,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($image === false && !empty($_FILES['image']['name'])) {
         redirect('itinerary-form.php' . ($id ? "?id=$id" : ''), 'Image upload failed. Check file type/size.', 'danger');
     }
-    // If no new image uploaded and no old image, keep as-is
-    if ($image === null) $image = '';
+    // If no new image uploaded, keep old image
+    if ($image === null) $image = $old_image;
 
     // Process highlights, inclusions, exclusions (one per line → JSON array)
     $highlightsRaw = $_POST['highlights'] ?? '';

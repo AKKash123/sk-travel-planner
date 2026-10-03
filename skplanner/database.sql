@@ -641,8 +641,6 @@ INNER JOIN itineraries i
 ORDER BY
     ii.itinerary_id,
     ii.sort_order;
-
-
 -- ============================================
 -- 9. USER REVIEWS TABLE & SAMPLES
 -- ============================================
@@ -683,3 +681,33 @@ CREATE TABLE IF NOT EXISTS review_images (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_review_id (review_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================
+-- 11. TRAVEL GALLERY TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS gallery_images (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(255) NOT NULL,
+    destination VARCHAR(255) DEFAULT NULL,
+    description TEXT DEFAULT NULL,
+    image       VARCHAR(255) NOT NULL,
+    sort_order  INT DEFAULT 0,
+    status      TINYINT(1) DEFAULT 1,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_sort_order (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO gallery_images
+    (id, title, destination, description, image, sort_order, status, created_at)
+VALUES
+    (1, 'Misty Sunrise at Tiger Hill', 'Darjeeling', 'Spectacular morning golden rays hitting the snow-capped peak of Mount Kanchenjunga.', 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80', 1, 1, NOW() - INTERVAL 10 DAY),
+    (2, 'Valley of Flowers & Mountain Streams', 'Sikkim', 'Unbelievable colors and pristine alpine meadows in North Sikkim Yumthang Valley.', 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80', 2, 1, NOW() - INTERVAL 8 DAY),
+    (3, 'Emerald Tea Gardens of Kurseong', 'Darjeeling', 'Walking through endless rolling slopes of fragrant tea plantations in the misty hills.', 'https://images.unsplash.com/photo-1576487247238-d98f9c065f49?auto=format&fit=crop&w=1200&q=80', 3, 1, NOW() - INTERVAL 6 DAY),
+    (4, 'Serene Alleppey Houseboat Sunset', 'Kerala', 'Gentle cruise along palm-fringed backwaters as the sun dips below shimmering canals.', 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80', 4, 1, NOW() - INTERVAL 4 DAY),
+    (5, 'Pristine Waves & Golden Sands', 'Goa', 'Peaceful evening walks and turquoise shores along the southern coastline.', 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80', 5, 1, NOW() - INTERVAL 2 DAY),
+    (6, 'Kelingking Secret Beach & Cliffs', 'Bali', 'Dramatic T-Rex shaped coastal headland and crystal clear sapphire waters of Nusa Penida.', 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80', 6, 1, NOW() - INTERVAL 1 DAY)
+ON DUPLICATE KEY UPDATE id=id;

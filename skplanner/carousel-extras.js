@@ -56,6 +56,7 @@
         }
 
         function buildDots() {
+            if (!dotsWrap) return;
             dotsWrap.innerHTML = '';
             slides.forEach(function (s, i) {
                 var b = document.createElement('button');

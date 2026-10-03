@@ -37,6 +37,14 @@ try {
     }
 } catch (Throwable $e) {}
 
+// Gallery stats
+$totalGalleryPhotos = 0;
+$activeGalleryPhotos = 0;
+try {
+    $totalGalleryPhotos = (int)$pdo->query("SELECT COUNT(*) FROM gallery_images")->fetchColumn();
+    $activeGalleryPhotos = (int)$pdo->query("SELECT COUNT(*) FROM gallery_images WHERE status = 1")->fetchColumn();
+} catch (Throwable $e) {}
+
 // Recent activity
  $recentItins = $pdo->query("SELECT title, created_at FROM itineraries ORDER BY created_at DESC LIMIT 5")->fetchAll();
 
@@ -183,7 +191,7 @@ if ($page > $totalPages) $page = $totalPages;
 
         /* ---- Stats Cards ---- */
         .stats-grid {
-            display:grid; grid-template-columns:repeat(6,1fr); gap:18px; margin-bottom:30px;
+            display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:18px; margin-bottom:30px;
         }
         .stat-card {
             background:var(--white); border-radius:var(--radius); padding:22px 20px;
@@ -509,29 +517,7 @@ if ($page > $totalPages) $page = $totalPages;
 <div class="admin-layout">
 
     <!-- ============ SIDEBAR ============ -->
-    <aside class="admin-sidebar">
-        <div class="admin-sidebar-brand">
-            <span class="brand-icon"><img src="../logo.jpg" alt="Logo"></span> SK Travel
-        </div>
-        <ul class="admin-nav">
-            <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="itinerary-form.php"><i class="fas fa-plus-circle"></i> New Itinerary</a></li>
-            <li>
-                <a href="reviews.php" style="display:flex;align-items:center;">
-                    <i class="fas fa-star"></i> User Reviews
-                    <?php if ($pendingReviews > 0): ?>
-                        <span style="background:#E8912D;color:#fff;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700;margin-left:auto;"><?= $pendingReviews ?></span>
-                    <?php endif; ?>
-                </a>
-            </li>
-            <li><a href="backup.php"><i class="fas fa-database"></i> DB Backup</a></li>
-            <div class="nav-divider"></div>
-            <li><a href="../index.php"><i class="fas fa-globe"></i> View Website</a></li>
-            <li><a href="change-password.php"><i class="fas fa-key"></i> Password update</a></li>
-            <div class="nav-divider"></div>
-            <li><a href="logout.php" style="color:rgba(255,255,255,0.4);"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-        </ul>
-    </aside>
+    <?php include __DIR__ . '/sidebar-fragment.php'; ?>
 
     <!-- ============ MAIN ============ -->
     <div class="admin-main">
@@ -587,6 +573,16 @@ if ($page > $totalPages) $page = $totalPages;
                             <?php endif; ?>
                         </div>
                         <div class="stat-label">User Reviews</div>
+                    </div>
+                </a>
+                <a href="gallery.php" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:rgba(217,108,63,0.12);color:var(--primary);"><i class="fas fa-camera-retro"></i></div>
+                        <div class="stat-value">
+                            <?= (int)$totalGalleryPhotos ?>
+                            <span style="font-size:11px;background:var(--success);color:#fff;padding:2px 6px;border-radius:10px;vertical-align:middle;margin-left:4px;font-family:sans-serif;font-weight:700;"><?= $activeGalleryPhotos ?> live</span>
+                        </div>
+                        <div class="stat-label">Travel Gallery</div>
                     </div>
                 </a>
             </div>

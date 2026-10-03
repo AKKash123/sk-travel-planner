@@ -4,13 +4,51 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 
 /* =========================================================
+   SAFE HELPERS
+   (work even if config.php helpers are missing or strictly typed;
+    everything coming from the DB may be string|int|null)
+========================================================= */
+function h($v): string
+{
+    return htmlspecialchars((string)($v ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function fmtPrice($p): string
+{
+    if (function_exists('formatPrice')) {
+        try { return (string)formatPrice((float)$p); } catch (Throwable $e) { /* fall through */ }
+    }
+    return '₹' . number_format((float)$p);
+}
+
+function safeUrl(string $fn, $value, string $fallbackBase = ''): string
+{
+    $value = (string)($value ?? '');
+    if (function_exists($fn)) {
+        try { return (string)$fn($value); } catch (Throwable $e) { /* fall through */ }
+    }
+    return $value === '' ? '' : $fallbackBase . rawurlencode($value);
+}
+
+function jsonList($raw): array
+{
+    $d = json_decode((string)($raw ?? ''), true);
+    return is_array($d) ? $d : [];
+}
+
+$ld = static fn(array $d): string =>
+    (string)json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_INVALID_UTF8_SUBSTITUTE);
+
+/* =========================================================
    DATA
 ========================================================= */
-
-// Active itineraries
-$stmt = $pdo->prepare("SELECT * FROM itineraries WHERE status = 1 ORDER BY created_at DESC");
-$stmt->execute();
-$itineraries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$itineraries = [];
+try {
+    $itineraries = $pdo->query("SELECT * FROM itineraries WHERE status = 1 ORDER BY created_at DESC")
+                       ->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    error_log('Itineraries query failed: ' . $e->getMessage());
+}
 
 // Ratings per itinerary (page still works before the table exists)
 $ratings = [];
@@ -38,8 +76,8 @@ try {
     $bestReviews = $brStmt->fetchAll(PDO::FETCH_ASSOC);
 
     if ($bestReviews) {
-        $brIds = array_column($bestReviews, 'id');
-        $in    = implode(',', array_fill(0, count($brIds), '?'));
+        $brIds   = array_column($bestReviews, 'id');
+        $in      = implode(',', array_fill(0, count($brIds), '?'));
         $imgStmt = $pdo->prepare("SELECT * FROM review_images WHERE review_id IN ($in) ORDER BY id ASC");
         $imgStmt->execute($brIds);
         while ($row = $imgStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -50,10 +88,31 @@ try {
     error_log('User reviews query failed: ' . $e->getMessage());
 }
 
+// Active travel gallery images & destinations
+$galleryImages = [];
+$galleryDestinations = [];
+try {
+    $galStmt = $pdo->prepare("SELECT * FROM gallery_images WHERE status = 1 ORDER BY sort_order ASC, created_at DESC");
+    $galStmt->execute();
+    $galleryImages = $galStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($galleryImages as $gImg) {
+        $gDest = trim((string)($gImg['destination'] ?? ''));
+        if ($gDest !== '') {
+            $destKey = mb_strtolower($gDest);
+            $galleryDestinations[$destKey] ??= ['label' => $gDest, 'count' => 0];
+            $galleryDestinations[$destKey]['count']++;
+        }
+    }
+    uasort($galleryDestinations, static fn($a, $b) => $b['count'] <=> $a['count']);
+} catch (Throwable $e) {
+    error_log('Gallery query failed: ' . $e->getMessage());
+}
+
 // Primary destinations ("Darjeeling, Sikkim" -> "Darjeeling")
 $destCounts = [];
 foreach ($itineraries as $it) {
-    $primary = trim(explode(',', (string)$it['destination'])[0]);
+    $primary = trim(explode(',', (string)($it['destination'] ?? ''))[0]);
     if ($primary === '') continue;
     $key = mb_strtolower($primary);
     $destCounts[$key] ??= ['label' => $primary, 'count' => 0];
@@ -73,7 +132,8 @@ usort($bestSellers, static function ($a, $b) use ($ratings, $sales) {
 $bestSellers = array_slice($bestSellers, 0, 8);
 
 // Overall rating for the trust line
-$bsReviewTotal = 0; $bsWeighted = 0.0;
+$bsReviewTotal = 0;
+$bsWeighted    = 0.0;
 foreach ($ratings as $r) { $bsReviewTotal += $r['count']; $bsWeighted += $r['avg'] * $r['count']; }
 $bsOverallAvg = $bsReviewTotal ? $bsWeighted / $bsReviewTotal : 0;
 
@@ -125,8 +185,10 @@ $heroSrcset = static function (array $s) use ($heroSrc): string {
 ========================================================= */
 $siteUrl        = 'https://sktravelplanners.com';
 $whatsappNumber = '917810807552';
-$whatsappMsg    = rawurlencode("Hello! I found your travel packages on " . APP_NAME . ". I would like to know more about your itineraries.");
-$pageSize       = 3;   // cards shown first and added on every "Load more"
+$appName        = defined('APP_NAME') ? (string)APP_NAME : 'SK Travel Planners';
+$whatsappMsg    = rawurlencode("Hello! I found your travel packages on " . $appName . ". I would like to know more about your itineraries.");
+$pageSize       = 3;      // cards shown first and added on every "Load more"
+$showAdminLinks = true;   // set to false to hide the Admin links from the public site
 
 $faqs = [
     ['How do I book a tour with SK Travel Planners?',
@@ -149,18 +211,20 @@ $faqs = [
 
 $chatPackages = array_map(static fn($i) => [
     'id'          => (int)$i['id'],
-    'title'       => $i['title'],
-    'destination' => $i['destination'],
+    'title'       => (string)$i['title'],
+    'destination' => (string)$i['destination'],
     'price'       => (float)$i['price'],
-    'priceLabel'  => formatPrice($i['price']),
+    'priceLabel'  => fmtPrice($i['price']),
     'days'        => (int)$i['duration_days'],
     'url'         => 'detail.php?id=' . (int)$i['id'],
 ], $itineraries);
 
 $appConfig = [
-    'name' => APP_NAME, 'whatsapp' => $whatsappNumber,
+    'name' => $appName, 'whatsapp' => $whatsappNumber,
     'pageSize' => $pageSize, 'packages' => $chatPackages,
 ];
+
+$logoUrl = $siteUrl . '/logo.jpg';
 
 $faqSchema = [
     '@context' => 'https://schema.org', '@type' => 'FAQPage',
@@ -172,7 +236,8 @@ $faqSchema = [
 $agencySchema = [
     '@context' => 'https://schema.org', '@type' => 'TravelAgency',
     'name' => 'SK Travel Planners', 'alternateName' => 'SKTravel', 'url' => $siteUrl,
-    'logo' => $siteUrl . '/logo.jpg',
+    'logo' => $logoUrl,
+    'image' => $logoUrl,
     'description' => 'Tour and travel agency offering custom itineraries, holiday packages, honeymoon packages and adventure tours across North Bengal, Sikkim, Darjeeling, Bhutan and more.',
     'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Alipurduar', 'addressRegion' => 'West Bengal', 'addressCountry' => 'IN'],
     'geo' => ['@type' => 'GeoCoordinates', 'latitude' => 26.489, 'longitude' => 89.527],
@@ -187,8 +252,7 @@ $breadcrumbSchema = [
         ['@type' => 'ListItem', 'position' => 2, 'name' => 'Itineraries', 'item' => $siteUrl . '/#itineraries'],
     ],
 ];
-$ld = static fn(array $d): string => json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
-$pageTitle = APP_NAME . ' | Tour Packages & Custom Itineraries';
+$pageTitle = $appName . ' | Tour Packages & Custom Itineraries';
 $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise itineraries, handpicked stays and local experiences across North Bengal, Sikkim, Darjeeling, Bhutan and more. Chat on WhatsApp to book.';
 ?>
 <!DOCTYPE html>
@@ -196,26 +260,26 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title><?= e($pageTitle) ?></title>
+    <title><?= h($pageTitle) ?></title>
 
-    <meta name="description" content="<?= e($pageDesc) ?>">
+    <meta name="description" content="<?= h($pageDesc) ?>">
     <meta name="keywords" content="SK Travel Planners, tour packages, custom itineraries, holiday packages, honeymoon packages, North Bengal tours, Darjeeling tour package, Sikkim tour package, Kalimpong, Gangtok, Siliguri travel agency, Bhutan tour package, Nepal travel package, North East India tours, travel agency in Alipurduar">
     <meta name="author" content="SK Travel Planners">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
-    <link rel="canonical" href="<?= e($siteUrl) ?>/">
+    <link rel="canonical" href="<?= h($siteUrl) ?>/">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="SK Travel Planners">
-    <meta property="og:title" content="<?= e($pageTitle) ?>">
-    <meta property="og:description" content="<?= e($pageDesc) ?>">
-    <meta property="og:url" content="<?= e($siteUrl) ?>/">
-    <meta property="og:image" content="<?= e($siteUrl) ?>/assets/og-image.jpg">
+    <meta property="og:title" content="<?= h($pageTitle) ?>">
+    <meta property="og:description" content="<?= h($pageDesc) ?>">
+    <meta property="og:url" content="<?= h($siteUrl) ?>/">
+    <meta property="og:image" content="<?= h($logoUrl) ?>">
     <meta property="og:image:alt" content="SK Travel Planners: curated travel itineraries">
     <meta property="og:locale" content="en_IN">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<?= e($pageTitle) ?>">
-    <meta name="twitter:description" content="<?= e($pageDesc) ?>">
-    <meta name="twitter:image" content="<?= e($siteUrl) ?>/assets/og-image.jpg">
+    <meta name="twitter:title" content="<?= h($pageTitle) ?>">
+    <meta name="twitter:description" content="<?= h($pageDesc) ?>">
+    <meta name="twitter:image" content="<?= h($logoUrl) ?>">
 
     <meta name="theme-color" content="#2d1f3d">
     <meta name="format-detection" content="telephone=no">
@@ -245,8 +309,8 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     <link rel="stylesheet" href="carousel-extras.css">
 
     <?php if ($heroSlides): ?>
-    <link rel="preload" as="image" href="<?= e($heroSrc($heroSlides[0], 1600)) ?>"
-          <?php if ($heroSrcset($heroSlides[0])): ?>imagesrcset="<?= e($heroSrcset($heroSlides[0])) ?>" imagesizes="100vw"<?php endif; ?>
+    <link rel="preload" as="image" href="<?= h($heroSrc($heroSlides[0], 1600)) ?>"
+          <?php if ($heroSrcset($heroSlides[0])): ?>imagesrcset="<?= h($heroSrcset($heroSlides[0])) ?>" imagesizes="100vw"<?php endif; ?>
           fetchpriority="high">
     <?php endif; ?>
 
@@ -255,8 +319,10 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
 
     <style>
     :root{--ink:#2d1f3d;--accent-orange:#e8590c}
+    html{scroll-padding-top:96px}
+    section[id]{scroll-margin-top:96px}
 
-    /* ---------- Filter section (inherits the page/body background) ---------- */
+    /* ---------- Filter section ---------- */
     .sf-section{position:relative;padding:56px 0 48px;background:transparent;color:#2d1f3d}
     .sf-inner{position:relative;z-index:1;max-width:900px;margin:0 auto;text-align:center}
     .sf-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;
@@ -280,7 +346,7 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     .sf-search{position:relative;flex:1}
     .sf-search i{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#e8590c;pointer-events:none;transition:transform .25s}
     .sf-search input{width:100%;height:54px;padding:0 18px 0 48px;border:1.5px solid rgba(45,31,61,.15);border-radius:14px;
-      font:inherit;font-size:1rem;color:#2d1f3d;background:rgba(255,255,255,.8);transition:border-color .25s,box-shadow .25s,background .25s}
+      font:inherit;font-size:1rem;color:#2d1f3d;background:rgba(255,255,255,.8);transition:border-color .25s,box-shadow .25s,background .25s;box-sizing:border-box}
     .sf-search input::placeholder{color:#8a8396}
     .sf-search input:focus{outline:none;border-color:#e8590c;background:#fff;box-shadow:0 0 0 4px rgba(232,89,12,.15)}
     .sf-search:focus-within i{transform:translateY(-50%) scale(1.15)}
@@ -310,8 +376,7 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     }
     @media(prefers-reduced-motion:reduce){.sf-card{animation:none}}
 
-    
-/* ---------- Shared headings / carousels ---------- */
+    /* ---------- Shared headings / carousels ---------- */
     .bs-heading{text-align:center;max-width:760px;margin:0 auto 38px;position:relative}
     .bs-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;
       background:rgba(232,89,12,.1);color:var(--accent-orange);font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
@@ -375,7 +440,7 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     @media(max-width:600px){.rv-card{flex-basis:90%}}
 
     /* ---------- Modal + lightbox ---------- */
-    .ov{display:none;position:fixed;inset:0;background:rgba(27,40,56,.75);backdrop-filter:blur(5px);z-index:999999;
+    .ov{display:none;position:fixed;inset:0;background:rgba(27,40,56,.75);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);z-index:999999;
       align-items:center;justify-content:center;padding:16px}
     .ov.open{display:flex}
     .md{background:#fff;width:100%;max-width:540px;border-radius:20px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,.35);animation:pop .3s ease}
@@ -392,7 +457,7 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     .fld small{font-size:12px;color:#64748b}
     .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .stars-pick{text-align:center;margin-bottom:18px;padding:14px;background:#fffbf5;border-radius:12px;border:1px solid #fed7aa}
-    .stars-pick .m-star{font-size:28px;cursor:pointer;color:#fbbf24;margin:0 3px;transition:transform .15s}
+    .stars-pick .m-star{font-size:28px;cursor:pointer;color:#fbbf24;margin:0 3px;transition:transform .15s;display:inline-block}
     .stars-pick .m-star:hover{transform:scale(1.2)}
     #modalRatingText{font-size:13px;font-weight:700;color:#d97706;margin-top:6px}
     .drop{border:2px dashed #fed7aa;border-radius:12px;padding:16px;text-align:center;background:#fffcf9;cursor:pointer;font-size:13px}
@@ -417,17 +482,224 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     .faq summary i{font-size:12px;transition:transform .2s}
     .faq details[open] summary i{transform:rotate(180deg)}
     .faq p{margin:12px 0 0;line-height:1.65;opacity:.85}
+
+    /* ---------- Travel Gallery Section ---------- */
+    .gallery-section{padding:70px 0;background:linear-gradient(180deg,#FDF8F3 0%,#F6EFE6 100%)}
+    .gal-filter-chips{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin:0 auto 32px;max-width:920px;padding:4px}
+    .gal-chip{border:1.5px solid rgba(45,31,61,.15);background:rgba(255,255,255,.8);color:#2d1f3d;border-radius:999px;
+      padding:8px 18px;font:inherit;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .25s ease;display:inline-flex;align-items:center;gap:7px}
+    .gal-chip em{font-style:normal;font-size:.74rem;padding:2px 7px;border-radius:999px;background:rgba(45,31,61,.08);color:#6b6478}
+    .gal-chip:hover{transform:translateY(-2px);border-color:#e8590c;box-shadow:0 8px 16px rgba(232,89,12,.15)}
+    .gal-chip.is-active{background:linear-gradient(135deg,#e8590c,#f08a3c);border-color:transparent;color:#fff;box-shadow:0 8px 20px rgba(232,89,12,.35)}
+    .gal-chip.is-active em{background:rgba(255,255,255,.25);color:#fff}
+
+    .gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px;margin-bottom:28px}
+    .gal-item{position:relative;border-radius:18px;overflow:hidden;background:#2d1f3d;aspect-ratio:4/3;cursor:pointer;
+      box-shadow:0 10px 28px rgba(45,31,61,.08);transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s ease;display:block}
+    .gal-item:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(45,31,61,.2)}
+    .gal-item img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s cubic-bezier(.16,1,.3,1),filter .4s ease}
+    .gal-item:hover img{transform:scale(1.08);filter:brightness(.9)}
+
+    .gal-badge{position:absolute;top:14px;left:14px;background:rgba(45,31,61,.78);color:#fff;
+      padding:4px 12px;border-radius:999px;font-size:.76rem;font-weight:600;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:2;display:inline-flex;align-items:center;gap:6px}
+    .gal-badge i{color:var(--accent-orange)}
+
+    .gal-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(45,31,61,.92) 100%);
+      display:flex;flex-direction:column;justify-content:flex-end;padding:18px 20px;color:#fff;opacity:0;transition:opacity .3s ease;z-index:3}
+    .gal-item:hover .gal-overlay,.gal-item:focus-visible .gal-overlay{opacity:1}
+    .gal-item:focus-visible{outline:3px solid rgba(232,89,12,.7);outline-offset:3px}
+    .gal-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#fff;margin:0 0 3px;line-height:1.25}
+    .gal-caption{font-size:.82rem;color:rgba(255,255,255,.82);margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+    .gal-zoom-icon{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);
+      -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem}
+    @media(hover:none){.gal-overlay{opacity:1}}
+
+    .gal-empty{background:#fff;border-radius:18px;padding:48px 20px;text-align:center;max-width:540px;margin:0 auto;box-shadow:0 4px 20px rgba(0,0,0,.05)}
+    .gal-empty i{font-size:48px;color:var(--accent-orange);margin-bottom:12px}
+
+    /* Interactive Lightbox Modal */
+    .gal-modal{display:none;position:fixed;inset:0;background:rgba(18,12,24,.95);z-index:9999999;
+      -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;user-select:none}
+    .gal-modal.open{display:flex;animation:pop .25s ease}
+    .gal-modal-inner{position:relative;max-width:1100px;width:100%;max-height:92vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .gal-modal-img-wrap{position:relative;max-width:100%;max-height:72vh;display:flex;align-items:center;justify-content:center}
+    .gal-modal-img{max-width:100%;max-height:72vh;border-radius:12px;object-fit:contain;box-shadow:0 25px 60px rgba(0,0,0,.6)}
+
+    .gal-modal-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;
+      background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:1.1rem;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s ease;z-index:10}
+    .gal-modal-nav:hover{background:var(--accent-orange);border-color:var(--accent-orange);transform:translateY(-50%) scale(1.08)}
+    .gal-modal-prev{left:-24px}
+    .gal-modal-next{right:-24px}
+
+    .gal-modal-bar{width:100%;max-width:780px;margin-top:14px;background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;color:#fff;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+    .gal-modal-bar-left{flex:1;text-align:left;padding-right:16px}
+    .gal-modal-bar-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#fff;margin:0 0 2px}
+    .gal-modal-bar-desc{font-size:.85rem;color:rgba(255,255,255,.75);margin:0}
+    .gal-modal-count{font-size:.85rem;font-weight:700;color:var(--accent-orange);background:rgba(232,89,12,.18);padding:4px 12px;border-radius:999px;white-space:nowrap}
+    .gal-modal-close{position:absolute;top:-46px;right:0;background:rgba(255,255,255,.14);border:0;color:#fff;
+      width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+    .gal-modal-close:hover{background:var(--accent-orange)}
+
+    @media(max-width:768px){
+      .gal-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+      .gal-modal-prev{left:6px}
+      .gal-modal-next{right:6px}
+      .gal-modal-close{top:6px;right:6px}
+      .gal-modal-nav{width:40px;height:40px;font-size:.95rem}
+    }
+
+    /* ============================================================
+       NAVBAR
+       ============================================================ */
+    .navbar {
+        background: linear-gradient(135deg, #1b1325 0%, #29213a 50%, #3e263d 100%) !important;
+        position: sticky; top: 0; z-index: 1000;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+        padding: 0 !important;
+    }
+    .navbar-inner {
+        display: flex; align-items: center; justify-content: space-between;
+        height: 72px; gap: 16px;
+    }
+    .navbar-brand {
+        display: inline-flex; align-items: center; gap: 12px;
+        font-family: 'Playfair Display', serif; font-size: 1.35rem; font-weight: 700;
+        color: #fff !important; text-decoration: none; padding-left: 0 !important; flex-shrink: 0;
+        transition: transform .2s ease, color .2s ease;
+    }
+    .navbar-brand:hover { color: var(--accent-orange, #e8590c) !important; transform: translateY(-1px); }
+    .navbar-brand .brand-icon {
+        width: 42px; height: 42px; border-radius: 12px; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--accent, #f4b942), var(--primary, #d96c3f));
+        box-shadow: 0 4px 12px rgba(232,89,12,0.35); flex-shrink: 0;
+    }
+    .navbar-brand .brand-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+    .navbar-collapse {
+        display: flex; align-items: center; justify-content: space-between;
+        flex: 1; margin-left: 20px;
+    }
+    .navbar-nav {
+        display: flex; align-items: center; gap: 6px; list-style: none; margin: 0; padding: 0;
+    }
+    .navbar-nav li { margin: 0; }
+    .navbar-nav .nav-link {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 15px; border-radius: 999px;
+        color: rgba(255, 255, 255, 0.85) !important; font-size: 0.92rem; font-weight: 600;
+        text-decoration: none; transition: all 0.25s ease;
+        position: relative; box-shadow: none !important;
+        border: 1px solid transparent;
+    }
+    .navbar-nav .nav-link i {
+        font-size: 0.88rem; color: rgba(255, 255, 255, 0.65);
+        transition: color 0.25s ease, transform 0.25s ease;
+    }
+    .navbar-nav .nav-link:hover {
+        color: #fff !important; background: rgba(255, 255, 255, 0.12) !important;
+        transform: translateY(-1px);
+    }
+    .navbar-nav .nav-link:hover i {
+        color: var(--accent-orange, #e8590c) !important; transform: scale(1.1);
+    }
+    .navbar-nav .nav-link.active {
+        color: #fff !important; background: linear-gradient(135deg, rgba(232,89,12,0.25), rgba(240,138,60,0.18)) !important;
+        border: 1px solid rgba(232,89,12,0.45);
+        box-shadow: 0 4px 14px rgba(232,89,12,0.25) !important;
+    }
+    .navbar-nav .nav-link.active i {
+        color: var(--accent-orange, #e8590c) !important;
+    }
+
+    .navbar-actions {
+        display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .nav-btn-admin {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 8px 16px; border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1.5px solid rgba(255, 255, 255, 0.18);
+        color: rgba(255, 255, 255, 0.9) !important; font-size: 0.85rem; font-weight: 600;
+        text-decoration: none; transition: all 0.25s ease;
+    }
+    .nav-btn-admin:hover {
+        color: #fff !important; background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.4); transform: translateY(-1px);
+    }
+    .nav-btn-admin i { color: #f4b942; }
+
+    .nav-btn-cta {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 18px; border-radius: 999px;
+        background: linear-gradient(135deg, #e8590c 0%, #f08a3c 100%);
+        color: #fff !important; font-size: 0.86rem; font-weight: 700;
+        text-decoration: none; box-shadow: 0 4px 16px rgba(232,89,12,0.4);
+        transition: all 0.25s ease;
+    }
+    .nav-btn-cta:hover {
+        background: linear-gradient(135deg, #cf4c05 0%, #e8590c 100%);
+        transform: translateY(-2px); box-shadow: 0 6px 20px rgba(232,89,12,0.55);
+        color: #fff !important;
+    }
+    .nav-btn-cta i { font-size: 1.05rem; }
+
+    .navbar-toggler {
+        display: none; flex-direction: column; justify-content: center; align-items: center;
+        width: 42px; height: 42px; border-radius: 10px;
+        background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+        cursor: pointer; padding: 0; gap: 5px; transition: background 0.2s ease;
+    }
+    .navbar-toggler:hover { background: rgba(255, 255, 255, 0.16); }
+    .toggler-bar {
+        width: 20px; height: 2px; background: #fff; border-radius: 2px;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .navbar-toggler.is-open .toggler-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .navbar-toggler.is-open .toggler-bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .navbar-toggler.is-open .toggler-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    @media(max-width: 992px) {
+        .navbar-toggler { display: flex; }
+        .navbar-collapse {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: linear-gradient(180deg, rgba(27,19,37,0.98) 0%, rgba(41,33,58,0.98) 100%);
+            -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+            flex-direction: column; align-items: stretch;
+            padding: 0 24px; margin: 0;
+            max-height: 0; opacity: 0; overflow: hidden; visibility: hidden;
+            transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, padding 0.3s ease, visibility 0s linear .35s;
+            pointer-events: none;
+        }
+        .navbar-collapse.is-open {
+            max-height: 520px; opacity: 1; padding: 18px 24px 24px; pointer-events: auto; visibility: visible;
+            transition-delay: 0s;
+        }
+        .navbar-nav { flex-direction: column; align-items: stretch; gap: 6px; width: 100%; }
+        .navbar-nav .nav-link { padding: 12px 18px; border-radius: 12px; font-size: 1rem; width: 100%; box-sizing: border-box; }
+        .navbar-actions {
+            flex-direction: column; gap: 10px; width: 100%; margin-top: 14px;
+            padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .nav-btn-admin, .nav-btn-cta { width: 100%; justify-content: center; padding: 12px 20px; box-sizing: border-box; }
+    }
     </style>
 </head>
 
-<body>
+<body id="top">
 
 <div class="page-loader" id="pageLoader" role="status" aria-label="Loading page">
     <span class="page-loader-spinner" aria-hidden="true"></span>
 </div>
 
-<!-- NAVBAR -->
- <div class="topbar">
+<!-- TOP BAR -->
+<div class="topbar">
     <div class="container topbar-inner">
         <a href="tel:+917810807552" class="topbar-link">
             <i class="fas fa-phone-alt"></i>
@@ -439,40 +711,65 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
         </a>
     </div>
 </div>
-<nav class="navbar">
+
+<!-- NAVBAR -->
+<nav class="navbar" id="mainNavbar" aria-label="Main navigation">
     <div class="container navbar-inner">
         <a href="index.php" class="navbar-brand">
-            <span class="brand-icon"><img src="logo.jpg" alt="Logo"></span>
-            <?= e(APP_NAME) ?>
+            <span class="brand-icon"><img src="logo.jpg" alt="<?= h($appName) ?> logo" width="42" height="42"></span>
+            <span class="brand-title"><?= h($appName) ?></span>
         </a>
-        <ul class="navbar-nav">
-            <li><a href="index.php" class="active">Home</a></li>
-            <li><a href="#itineraries">Destinations</a></li>
-            <li><a href="admin/index.php"><i class="fas fa-lock"></i> Admin</a></li>
-        </ul>
+
+        <button type="button" class="navbar-toggler" id="navbarToggler" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navbarMenu">
+            <span class="toggler-bar"></span>
+            <span class="toggler-bar"></span>
+            <span class="toggler-bar"></span>
+        </button>
+
+        <div class="navbar-collapse" id="navbarMenu">
+            <ul class="navbar-nav">
+                <li><a href="index.php" class="nav-link active" data-spy="home"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                <li><a href="#itineraries" class="nav-link" data-spy="itineraries"><i class="fas fa-compass"></i> <span>Destinations</span></a></li>
+                <li><a href="#gallery" class="nav-link" data-spy="gallery"><i class="fas fa-images"></i> <span>Gallery</span></a></li>
+                <li><a href="#reviews" class="nav-link" data-spy="reviews"><i class="fas fa-star"></i> <span>Reviews</span></a></li>
+                <li><a href="#faq" class="nav-link" data-spy="faq"><i class="fas fa-circle-question"></i> <span>FAQ</span></a></li>
+            </ul>
+
+            <div class="navbar-actions">
+                <?php if ($showAdminLinks): ?>
+                <a href="admin/index.php" class="nav-btn-admin" title="Admin Portal">
+                    <i class="fas fa-shield-halved"></i> <span>Admin</span>
+                </a>
+                <?php endif; ?>
+                <a href="https://wa.me/<?= h($whatsappNumber) ?>?text=<?= $whatsappMsg ?>" target="_blank" rel="noopener" class="nav-btn-cta">
+                    <i class="fab fa-whatsapp"></i> <span>Plan My Trip</span>
+                </a>
+            </div>
+        </div>
     </div>
 </nav>
+
 <!-- =========================================================
-HERO======================================================== -->
+     HERO
+========================================================= -->
 <section class="hero hero-carousel" aria-roledescription="carousel" aria-label="Incredible India destinations">
 
     <div class="hc-track">
         <?php foreach ($heroSlides as $i => $s): ?>
             <figure
                 class="hc-slide<?= $i === 0 ? ' is-active' : '' ?>"
-                style="background:<?= e($s['tint']) ?>"
-                data-title="<?= e($s['title']) ?>"
-                data-state="<?= e($s['state']) ?>"
+                style="background:<?= h($s['tint']) ?>"
+                data-title="<?= h($s['title']) ?>"
+                data-state="<?= h($s['state']) ?>"
                 role="group"
                 aria-roledescription="slide"
                 aria-label="<?= $i + 1 ?> of <?= count($heroSlides) ?>"
             >
                 <?php if ($i === 0): ?>
-                    <!-- First slide loads right away (it's the LCP image) -->
                     <img
-                        src="<?= e($heroSrc($s, 1600)) ?>"
-                        <?php if ($heroSrcset($s)): ?>srcset="<?= e($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
-                        alt="<?= e($s['title']) ?>, <?= e($s['state']) ?>"
+                        src="<?= h($heroSrc($s, 1600)) ?>"
+                        <?php if ($heroSrcset($s)): ?>srcset="<?= h($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
+                        alt="<?= h($s['title']) ?>, <?= h($s['state']) ?>"
                         width="1600" height="900"
                         loading="eager"
                         fetchpriority="high"
@@ -480,11 +777,10 @@ HERO======================================================== -->
                         onload="this.classList.add('is-loaded')"
                     >
                 <?php else: ?>
-                    <!-- Other slides are lazy: the browser won't fetch them until the script asks -->
                     <img
-                        data-src="<?= e($heroSrc($s, 1600)) ?>"
-                        <?php if ($heroSrcset($s)): ?>data-srcset="<?= e($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
-                        alt="<?= e($s['title']) ?>, <?= e($s['state']) ?>"
+                        data-src="<?= h($heroSrc($s, 1600)) ?>"
+                        <?php if ($heroSrcset($s)): ?>data-srcset="<?= h($heroSrcset($s)) ?>" sizes="100vw"<?php endif; ?>
+                        alt="<?= h($s['title']) ?>, <?= h($s['state']) ?>"
                         width="1600" height="900"
                         decoding="async"
                     >
@@ -513,20 +809,20 @@ HERO======================================================== -->
             <div class="hero-actions">
                 <a href="#itineraries" class="btn btn-accent btn-lg">
                     <i class="fas fa-compass"></i>
-                    Explore Itineraries
+                    Explore Package
                 </a>
 
                 <a href="tel:+917810807552" class="call-button" aria-label="Call us at +91 78108 07552">
-                <span class="call-icon" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
-                    </svg>
-                </span>
-                <span class="call-content">
-                    <small>Call Us</small>
-                    <strong>+91 78108 07552</strong>
-                </span>
+                    <span class="call-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                    </span>
+                    <span class="call-content">
+                        <small>Call Us</small>
+                        <strong>+91 78108 07552</strong>
+                    </span>
                 </a>
             </div>
 
@@ -537,7 +833,7 @@ HERO======================================================== -->
 
     <div class="hc-controls">
         <button type="button" class="hc-btn hc-prev" aria-label="Previous slide"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <div class="hc-dots"  role="group" aria-label="Choose slide"></div>
+        <div class="hc-dots" role="group" aria-label="Choose slide"></div>
         <button type="button" class="hc-btn hc-toggle" aria-label="Pause slideshow"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
         <button type="button" class="hc-btn hc-next" aria-label="Next slide"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
     </div>
@@ -547,7 +843,7 @@ HERO======================================================== -->
 </section>
 
 <!-- =========================================================
-     FILTER (single instance, directly below the hero)
+     FILTER
 ========================================================= -->
 <?php if (!empty($itineraries)): ?>
 <section class="sf-section" id="find-package" aria-label="Find a package">
@@ -582,8 +878,8 @@ HERO======================================================== -->
                 <div class="sf-chips" id="destChips" role="group" aria-label="Popular destinations">
                     <button type="button" class="sf-chip is-active" data-dest="">All</button>
                     <?php foreach ($primaryDestinations as $d): ?>
-                        <button type="button" class="sf-chip" data-dest="<?= e($d['label']) ?>">
-                            <?= e($d['label']) ?><em><?= (int)$d['count'] ?></em>
+                        <button type="button" class="sf-chip" data-dest="<?= h($d['label']) ?>">
+                            <?= h($d['label']) ?><em><?= (int)$d['count'] ?></em>
                         </button>
                     <?php endforeach; ?>
                 </div>
@@ -613,7 +909,7 @@ HERO======================================================== -->
             <?php if ($bsReviewTotal): ?>
             <ul class="bs-trust">
                 <li><i class="fas fa-star" aria-hidden="true"></i> <b><?= number_format($bsOverallAvg, 1) ?>/5</b> average rating</li>
-                <li><i class="fas fa-users" aria-hidden="true"></i> <b><?= (int)$bsReviewTotal ?>+</b> traveller reviews</li>
+                <li><i class="fas fa-users" aria-hidden="true"></i> <b><?= (int)$bsReviewTotal ?></b> traveller ratings</li>
                 <li><i class="fas fa-headset" aria-hidden="true"></i> <b>24/7</b> trip support</li>
             </ul>
             <?php endif; ?>
@@ -624,22 +920,22 @@ HERO======================================================== -->
         <div class="car" id="bsCarousel" aria-roledescription="carousel" aria-label="Best selling packages">
             <button type="button" class="car-arrow car-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
             <div class="car-track" id="bsTrack">
-                <?php foreach ($bestSellers as $n => $b): $rt = $ratings[(int)$b['id']] ?? null; ?>
+                <?php foreach ($bestSellers as $b): $rt = $ratings[(int)$b['id']] ?? null; ?>
                     <article class="bs-card">
                         <div class="bs-img">
-                            <img src="<?= e(imageUrl($b['image'])) ?>" alt="<?= e($b['title']) ?>"
-                                 loading="<?= $n < 2 ? 'eager' : 'lazy' ?>" decoding="async">
+                            <img src="<?= h(safeUrl('imageUrl', $b['image'])) ?>" alt="<?= h($b['title']) ?>"
+                                 loading="lazy" decoding="async">
                             <span class="bs-badge"><i class="fas fa-fire"></i> Best Seller</span>
                             <span class="bs-days"><?= (int)$b['duration_days'] ?> Days</span>
                         </div>
                         <div class="bs-body">
-                            <h3><?= e($b['title']) ?></h3>
-                            <div class="bs-dest"><i class="fas fa-map-marker-alt"></i> <?= e($b['destination']) ?></div>
+                            <h3><?= h($b['title']) ?></h3>
+                            <div class="bs-dest"><i class="fas fa-map-marker-alt"></i> <?= h($b['destination']) ?></div>
                             <?php if ($rt): ?>
-                                <div class="bs-rate"><i class="fas fa-star"></i> <b><?= number_format($rt['avg'], 1) ?></b> (<?= $rt['count'] ?>)</div>
+                                <div class="bs-rate"><i class="fas fa-star"></i> <b><?= number_format($rt['avg'], 1) ?></b> (<?= (int)$rt['count'] ?>)</div>
                             <?php endif; ?>
                             <div class="bs-foot">
-                                <span class="bs-price"><?= e(formatPrice($b['price'])) ?></span>
+                                <span class="bs-price"><?= h(fmtPrice($b['price'])) ?></span>
                                 <a class="btn btn-primary btn-sm" href="detail.php?id=<?= (int)$b['id'] ?>">View <i class="fas fa-arrow-right"></i></a>
                             </div>
                         </div>
@@ -696,35 +992,34 @@ HERO======================================================== -->
 
             <div class="card-grid is-loading" id="itineraryGrid">
                 <?php foreach ($itineraries as $index => $itin):
-                    $highlights = json_decode((string)$itin['highlights'], true) ?? [];
-                    $days       = json_decode((string)$itin['day_plan'], true) ?? [];
+                    $highlights = jsonList($itin['highlights'] ?? '');
+                    $days       = jsonList($itin['day_plan'] ?? '');
                     $price      = (float)$itin['price'];
                     $eager      = $index < $pageSize;
                     $rt         = $ratings[(int)$itin['id']] ?? null;
                 ?>
                     <div class="itin-card itinerary-item"
                          data-price="<?= $price ?>"
-                         data-destination="<?= e(strtolower($itin['destination'])) ?>"
-                         data-title="<?= e(strtolower($itin['title'])) ?>">
+                         data-destination="<?= h(mb_strtolower((string)$itin['destination'])) ?>"
+                         data-title="<?= h(mb_strtolower((string)$itin['title'])) ?>">
 
                         <div class="itin-card-img">
                             <span class="img-shimmer skeleton" aria-hidden="true"></span>
-                            <img src="<?= e(imageUrl($itin['image'])) ?>" alt="<?= e($itin['title']) ?>"
-                                 loading="<?= $eager ? 'eager' : 'lazy' ?>" decoding="async"
-                                 <?= $index === 0 ? 'fetchpriority="high"' : '' ?>>
+                            <img src="<?= h(safeUrl('imageUrl', $itin['image'])) ?>" alt="<?= h($itin['title']) ?>"
+                                 loading="<?= $eager ? 'eager' : 'lazy' ?>" decoding="async">
                             <span class="itin-card-badge"><?= (int)$itin['duration_days'] ?> Days</span>
                             <span class="rating-pill<?= $rt ? '' : ' is-new' ?>"
-                                  aria-label="<?= $rt ? 'Rated ' . number_format($rt['avg'], 1) . ' out of 5 by ' . $rt['count'] . ' travellers' : 'No ratings yet' ?>">
+                                  aria-label="<?= $rt ? 'Rated ' . number_format($rt['avg'], 1) . ' out of 5 by ' . (int)$rt['count'] . ' travellers' : 'No ratings yet' ?>">
                                 <i class="fas fa-star" aria-hidden="true"></i>
-                                <?php if ($rt): ?><b><?= number_format($rt['avg'], 1) ?></b><em>(<?= $rt['count'] ?>)</em>
+                                <?php if ($rt): ?><b><?= number_format($rt['avg'], 1) ?></b><em>(<?= (int)$rt['count'] ?>)</em>
                                 <?php else: ?><b>New</b><?php endif; ?>
                             </span>
                         </div>
 
                         <div class="itin-card-body">
-                            <h3><?= e($itin['title']) ?></h3>
-                            <div class="dest"><i class="fas fa-map-marker-alt"></i> <?= e($itin['destination']) ?></div>
-                            <p class="desc"><?= e($itin['description']) ?></p>
+                            <h3><?= h($itin['title']) ?></h3>
+                            <div class="dest"><i class="fas fa-map-marker-alt"></i> <?= h($itin['destination']) ?></div>
+                            <p class="desc"><?= h($itin['description']) ?></p>
 
                             <div class="itin-card-meta">
                                 <span><i class="fas fa-calendar-alt"></i> <?= (int)$itin['duration_days'] ?> Days</span>
@@ -733,7 +1028,7 @@ HERO======================================================== -->
                             </div>
 
                             <div class="rate-box" data-id="<?= (int)$itin['id'] ?>">
-                                <div class="rate-stars" role="radiogroup" aria-label="Rate <?= e($itin['title']) ?>">
+                                <div class="rate-stars" role="radiogroup" aria-label="Rate <?= h($itin['title']) ?>">
                                     <?php for ($n = 1; $n <= 5; $n++): ?>
                                         <button type="button" class="rate-star" role="radio" aria-checked="false"
                                                 data-value="<?= $n ?>" aria-label="<?= $n ?> star<?= $n > 1 ? 's' : '' ?>">
@@ -742,14 +1037,14 @@ HERO======================================================== -->
                                     <?php endfor; ?>
                                 </div>
                                 <span class="rate-count<?= $rt ? '' : ' is-empty' ?>" aria-live="polite">
-                                    <?php if ($rt): ?><b><?= number_format($rt['avg'], 1) ?></b> · <?= $rt['count'] ?> rating<?= $rt['count'] === 1 ? '' : 's' ?>
+                                    <?php if ($rt): ?><b><?= number_format($rt['avg'], 1) ?></b> · <?= (int)$rt['count'] ?> rating<?= $rt['count'] === 1 ? '' : 's' ?>
                                     <?php else: ?>No ratings yet<?php endif; ?>
                                 </span>
                                 <span class="rate-hint">Tap a star to rate</span>
                             </div>
 
                             <div class="itin-card-footer">
-                                <span class="itin-price"><?= e(formatPrice($itin['price'])) ?></span>
+                                <span class="itin-price"><?= h(fmtPrice($itin['price'])) ?></span>
                                 <a href="detail.php?id=<?= (int)$itin['id'] ?>" class="btn btn-primary btn-sm">
                                     View Details <i class="fas fa-arrow-right"></i>
                                 </a>
@@ -778,6 +1073,98 @@ HERO======================================================== -->
     </div>
 </section>
 
+<!-- TRAVEL GALLERY -->
+<section class="section gallery-section" id="gallery" aria-label="Travel photo gallery">
+    <div class="container">
+
+        <div class="bs-heading">
+            <span class="bs-eyebrow"><i class="fas fa-camera-retro" aria-hidden="true"></i> Visual Journey</span>
+            <h2>Captured Moments &amp; <span>Travel Memories</span></h2>
+            <span class="bs-divider" aria-hidden="true"><i></i><i class="fas fa-compass"></i><i></i></span>
+            <p>Immerse yourself in authentic travel moments, breathtaking landscapes, and scenic highlights captured across our handcrafted journeys.</p>
+        </div>
+
+        <?php if (!empty($galleryDestinations)): ?>
+            <div class="gal-filter-chips" id="galFilterChips" role="group" aria-label="Filter gallery by destination">
+                <button type="button" class="gal-chip is-active" data-dest="all">
+                    <i class="fas fa-layer-group"></i> All Photos <em><?= count($galleryImages) ?></em>
+                </button>
+                <?php foreach ($galleryDestinations as $gd): ?>
+                    <button type="button" class="gal-chip" data-dest="<?= h(mb_strtolower($gd['label'])) ?>">
+                        <?= h($gd['label']) ?> <em><?= (int)$gd['count'] ?></em>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (empty($galleryImages)): ?>
+            <div class="gal-empty">
+                <i class="fas fa-images"></i>
+                <h3 style="font-family:'Playfair Display',serif;margin-bottom:6px">Gallery Coming Soon</h3>
+                <p style="color:#64748b;font-size:14.5px;">We are currently curating stunning travel pictures for you. Check back shortly!</p>
+            </div>
+        <?php else: ?>
+            <div class="gal-grid" id="galGrid">
+                <?php foreach ($galleryImages as $gIdx => $gPhoto):
+                    $gUrl     = safeUrl('galleryImageUrl', $gPhoto['image']);
+                    $gDest    = trim((string)($gPhoto['destination'] ?? ''));
+                    $gDestKey = mb_strtolower($gDest);
+                ?>
+                    <article class="gal-item"
+                             data-dest="<?= h($gDestKey) ?>"
+                             data-src="<?= h($gUrl) ?>"
+                             data-title="<?= h($gPhoto['title']) ?>"
+                             data-desc="<?= h($gPhoto['description'] ?? '') ?>"
+                             data-location="<?= h($gDest) ?>"
+                             tabindex="0"
+                             role="button"
+                             aria-label="View <?= h($gPhoto['title']) ?>">
+                        <?php if ($gDest !== ''): ?>
+                            <span class="gal-badge"><i class="fas fa-map-marker-alt"></i> <?= h($gDest) ?></span>
+                        <?php endif; ?>
+                        <img src="<?= h($gUrl) ?>" alt="<?= h($gPhoto['title']) ?>"
+                             loading="<?= $gIdx < 8 ? 'eager' : 'lazy' ?>" decoding="async">
+                        <div class="gal-overlay">
+                            <h3 class="gal-title"><?= h($gPhoto['title']) ?></h3>
+                            <?php if (!empty($gPhoto['description'])): ?>
+                                <p class="gal-caption"><?= h($gPhoto['description']) ?></p>
+                            <?php endif; ?>
+                            <span class="gal-zoom-icon" aria-hidden="true"><i class="fas fa-expand-alt"></i></span>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <div id="galNoResults" style="display:none; text-align:center; padding:30px 16px; color:#64748b;">
+                <i class="fas fa-camera" style="font-size:36px; color:var(--accent-orange); margin-bottom:8px;"></i>
+                <p>No photos found for this destination.</p>
+            </div>
+        <?php endif; ?>
+
+    </div>
+</section>
+
+<!-- GALLERY LIGHTBOX MODAL -->
+<div id="galModal" class="gal-modal" role="dialog" aria-modal="true" aria-label="Enlarged photo view">
+    <div class="gal-modal-inner">
+        <button type="button" class="gal-modal-close" id="galModalClose" aria-label="Close photo view"><i class="fas fa-times"></i></button>
+
+        <div class="gal-modal-img-wrap">
+            <button type="button" class="gal-modal-nav gal-modal-prev" id="galModalPrev" aria-label="Previous photo"><i class="fas fa-chevron-left"></i></button>
+            <img id="galModalImg" class="gal-modal-img" alt="Travel photo">
+            <button type="button" class="gal-modal-nav gal-modal-next" id="galModalNext" aria-label="Next photo"><i class="fas fa-chevron-right"></i></button>
+        </div>
+
+        <div class="gal-modal-bar">
+            <div class="gal-modal-bar-left">
+                <h4 id="galModalTitle" class="gal-modal-bar-title"></h4>
+                <p id="galModalDesc" class="gal-modal-bar-desc"></p>
+            </div>
+            <span id="galModalCount" class="gal-modal-count"></span>
+        </div>
+    </div>
+</div>
+
 <!-- REVIEWS -->
 <section class="section reviews-section" id="reviews">
     <div class="container">
@@ -797,42 +1184,44 @@ HERO======================================================== -->
                 <div class="car-track" id="rvTrack">
                     <?php foreach ($bestReviews as $rev):
                         $initials = '';
-                        foreach (array_slice(explode(' ', trim((string)$rev['user_name'])), 0, 2) as $w) {
+                        $words = preg_split('/\s+/u', trim((string)$rev['user_name']), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                        foreach (array_slice($words, 0, 2) as $w) {
                             $initials .= mb_substr($w, 0, 1);
                         }
                         $photos = $bestReviewImages[$rev['id']] ?? [];
+                        $stars  = max(0, min(5, (int)$rev['rating']));
                     ?>
                         <article class="rv-card">
                             <div class="rv-quote"><i class="fas fa-quote-right"></i></div>
-                            <div class="rv-stars" aria-label="Rated <?= (int)$rev['rating'] ?> out of 5">
+                            <div class="rv-stars" aria-label="Rated <?= $stars ?> out of 5">
                                 <?php for ($s = 1; $s <= 5; $s++): ?>
-                                    <i class="<?= $s <= (int)$rev['rating'] ? 'fas' : 'far' ?> fa-star"></i>
+                                    <i class="<?= $s <= $stars ? 'fas' : 'far' ?> fa-star"></i>
                                 <?php endfor; ?>
-                                <span class="rv-pill"><?= (int)$rev['rating'] ?>.0 / 5</span>
+                                <span class="rv-pill"><?= $stars ?>.0 / 5</span>
                             </div>
-                            <?php if (!empty($rev['review_title'])): ?><h4><?= e($rev['review_title']) ?></h4><?php endif; ?>
-                            <p class="rv-text">"<?= nl2br(e($rev['review_text'])) ?>"</p>
+                            <?php if (!empty($rev['review_title'])): ?><h4><?= h($rev['review_title']) ?></h4><?php endif; ?>
+                            <p class="rv-text">"<?= nl2br(h($rev['review_text'])) ?>"</p>
 
                             <?php if ($photos): ?>
                                 <div class="rv-photos">
                                     <?php foreach ($photos as $p):
-                                        $pUrl = reviewImageUrl($p) ?: ('review_folder/' . rawurlencode($p)); ?>
-                                        <button type="button" data-lightbox="<?= e($pUrl) ?>" title="Enlarge photo">
-                                            <img src="<?= e($pUrl) ?>" alt="Photo by <?= e($rev['user_name']) ?>" loading="lazy">
+                                        $pUrl = safeUrl('reviewImageUrl', $p) ?: ('review_folder/' . rawurlencode((string)$p)); ?>
+                                        <button type="button" data-lightbox="<?= h($pUrl) ?>" title="Enlarge photo">
+                                            <img src="<?= h($pUrl) ?>" alt="Photo by <?= h($rev['user_name']) ?>" loading="lazy">
                                         </button>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
 
                             <div class="rv-foot">
-                                <div class="rv-avatar"><?= e($initials ?: 'U') ?></div>
+                                <div class="rv-avatar"><?= h($initials ?: 'U') ?></div>
                                 <div>
-                                    <div class="rv-name"><?= e($rev['user_name']) ?></div>
+                                    <div class="rv-name"><?= h($rev['user_name']) ?></div>
                                     <div class="rv-sub">
                                         <?php if (!empty($rev['user_location'])): ?>
-                                            <span><i class="fas fa-map-marker-alt"></i> <?= e($rev['user_location']) ?></span>
+                                            <span><i class="fas fa-map-marker-alt"></i> <?= h($rev['user_location']) ?></span>
                                         <?php endif; ?>
-                                        <span class="rv-ok"><i class="fas fa-check-circle"></i> Verified Traveller</span>
+                                        <span class="rv-ok"><i class="fas fa-check-circle"></i> Approved review</span>
                                     </div>
                                 </div>
                             </div>
@@ -941,7 +1330,7 @@ HERO======================================================== -->
 
 <!-- Photo lightbox -->
 <div id="publicReviewLightbox" class="ov" role="dialog" aria-label="Review photo">
-    <img id="publicReviewLightboxImg" src="" alt="Review photo">
+    <img id="publicReviewLightboxImg" alt="Review photo">
 </div>
 
 <!-- FAQ -->
@@ -949,8 +1338,8 @@ HERO======================================================== -->
     <h2>Frequently Asked Questions</h2>
     <?php foreach ($faqs as $f): ?>
         <details>
-            <summary><?= e($f[0]) ?> <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
-            <p><?= e($f[1]) ?></p>
+            <summary><?= h($f[0]) ?> <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+            <p><?= h($f[1]) ?></p>
         </details>
     <?php endforeach; ?>
 </section>
@@ -960,7 +1349,7 @@ HERO======================================================== -->
     <div class="container">
         <div class="footer-grid">
             <div>
-                <h4><img class="footer-logo" src="logo.jpg" alt="Logo"> <?= e(APP_NAME) ?></h4>
+                <h4><img class="footer-logo" src="logo.jpg" alt="<?= h($appName) ?> logo"> <?= h($appName) ?></h4>
                 <p style="max-width:320px;">Your trusted partner for unforgettable travel experiences. Expert-crafted itineraries for destinations across the globe.</p>
             </div>
             <div>
@@ -968,30 +1357,33 @@ HERO======================================================== -->
                 <ul style="list-style:none;padding-left:0;">
                     <li style="margin-bottom:8px;"><a href="index.php">Home</a></li>
                     <li style="margin-bottom:8px;"><a href="#itineraries">Itineraries</a></li>
+                    <li style="margin-bottom:8px;"><a href="#gallery">Gallery</a></li>
                     <li style="margin-bottom:8px;"><a href="#reviews">Reviews</a></li>
                     <li style="margin-bottom:8px;"><a href="#faq">FAQ</a></li>
+                    <?php if ($showAdminLinks): ?>
                     <li style="margin-bottom:8px;"><a href="admin/index.php">Admin Panel</a></li>
+                    <?php endif; ?>
                 </ul>
             </div>
             <div>
                 <h4>Contact</h4>
                 <p><i class="fas fa-envelope"></i> <a href="mailto:info@sktravelplanners.in">info@sktravelplanners.in</a></p>
-                <p><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= $whatsappNumber ?>" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>
-                <a href="https://wa.me/<?= $whatsappNumber ?>" target="_blank" rel="noopener" class="footer-whatsapp">
+                <p><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= h($whatsappNumber) ?>" target="_blank" rel="noopener noreferrer">+91 78108 07552</a></p>
+                <a href="https://wa.me/<?= h($whatsappNumber) ?>" target="_blank" rel="noopener noreferrer" class="footer-whatsapp">
                     <i class="fab fa-whatsapp"></i> WhatsApp Us
                 </a>
             </div>
         </div>
         <div class="footer-bottom">
-            &copy; <?= date('Y') ?> <?= e(APP_NAME) ?>. All rights reserved.
-            <a href="privicy-policy.html" target="_blank">Terms &amp; Conditions</a>
-            &nbsp; &nbsp; <span><a href="https://e-websolutions.netlify.app/" target="_blank" rel="noopener">Maintained by e-WebSolutions</a></span>
+            &copy; <?= date('Y') ?> <?= h($appName) ?>. All rights reserved.
+            <a href="privicy-policy.html" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+            &nbsp; &nbsp; <span><a href="https://e-websolutions.netlify.app/" target="_blank" rel="noopener noreferrer">Maintained by e-WebSolutions</a></span>
         </div>
     </div>
 </footer>
 
 <!-- FLOATING WHATSAPP -->
-<a href="https://wa.me/<?= $whatsappNumber ?>?text=<?= $whatsappMsg ?>" target="_blank" rel="noopener"
+<a href="https://wa.me/<?= h($whatsappNumber) ?>?text=<?= $whatsappMsg ?>" target="_blank" rel="noopener noreferrer"
    class="floating-whatsapp" aria-label="Chat on WhatsApp"><i class="fab fa-whatsapp"></i></a>
 
 <!-- CHATBOT -->
@@ -1023,7 +1415,7 @@ HERO======================================================== -->
             <div class="bot-message" id="chatbotWelcome">
                 <div class="message-avatar"><i class="fas fa-robot"></i></div>
                 <div class="message-content">
-                    👋 Hello! Welcome to <?= e(APP_NAME) ?>.<br><br>
+                    👋 Hello! Welcome to <?= h($appName) ?>.<br><br>
                     Tell me your <strong>budget</strong>, <strong>destination</strong> or <strong>trip length</strong>, for example
                     <em>“5 day trip under 20k”</em>, and I'll find matching packages.
                     <div class="quick-replies">
@@ -1040,13 +1432,13 @@ HERO======================================================== -->
             <input type="text" id="chatbotInput" placeholder="Ask about your trip..." autocomplete="off" maxlength="300">
             <button type="button" id="chatbotSend" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
         </div>
-        <div class="chatbot-footer"><span>Powered by <?= e(APP_NAME) ?></span></div>
+        <div class="chatbot-footer"><span>Powered by <?= h($appName) ?></span></div>
     </div>
 </div>
 
 <!-- JAVASCRIPT -->
 <script>
-    window.APP = <?= json_encode($appConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
+    window.APP = <?= json_encode($appConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}' ?>;
 </script>
 <script src="app.js" defer></script>
 <script src="carousel-extras.js" defer></script>
@@ -1054,6 +1446,19 @@ HERO======================================================== -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var $ = function (id) { return document.getElementById(id); };
+
+    /* ---------- Safety net: never leave the loader / skeleton stuck ---------- */
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            var loader = $('pageLoader');
+            if (loader) loader.style.setProperty('display', 'none', 'important');
+            var grid = $('itineraryGrid'), sk = $('skeletonGrid');
+            if (grid && grid.classList.contains('is-loading')) {
+                grid.classList.remove('is-loading');
+                if (sk) sk.style.display = 'none';
+            }
+        }, 6000);
+    });
 
     /* ---------- Destination filter: chips drive the search box that app.js listens to ---------- */
     var search = $('destinationSearch');
@@ -1085,22 +1490,27 @@ document.addEventListener('DOMContentLoaded', function () {
         var cards = track.querySelectorAll(cardSel), timer;
         if (!cards.length) return;
 
-        var step  = function () { return cards[0].getBoundingClientRect().width + 20; };
+        var gap   = function () { return parseFloat(getComputedStyle(track).columnGap) || 20; };
+        var step  = function () { return cards[0].getBoundingClientRect().width + gap(); };
         var per   = function () { return Math.max(1, Math.round(track.clientWidth / cards[0].getBoundingClientRect().width)); };
         var pages = function () { return Math.max(1, cards.length - per() + 1); };
 
         function sync() {
+            if (!dots) return;
             var idx = Math.round(track.scrollLeft / step());
             dots.querySelectorAll('button').forEach(function (d, i) { d.classList.toggle('on', i === idx); });
         }
         function go(i) { track.scrollTo({ left: i * step(), behavior: 'smooth' }); }
         function next() {
             var end = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
-            end ? go(0) : track.scrollBy({ left: step(), behavior: 'smooth' });
+            if (end) go(0); else track.scrollBy({ left: step(), behavior: 'smooth' });
         }
-        function prev() { track.scrollLeft <= 4 ? go(pages() - 1) : track.scrollBy({ left: -step(), behavior: 'smooth' }); }
-        function start() { if (auto && !matchMedia('(prefers-reduced-motion: reduce)').matches) { stop(); timer = setInterval(next, auto); } }
+        function prev() { if (track.scrollLeft <= 4) go(pages() - 1); else track.scrollBy({ left: -step(), behavior: 'smooth' }); }
         function stop()  { clearInterval(timer); }
+        function start() {
+            stop();
+            if (auto && !matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(next, auto);
+        }
         function build() {
             if (!dots) return;
             dots.innerHTML = '';
@@ -1115,52 +1525,153 @@ document.addEventListener('DOMContentLoaded', function () {
             sync();
         }
 
-        root.querySelector('.car-next').addEventListener('click', function () { next(); start(); });
-        root.querySelector('.car-prev').addEventListener('click', function () { prev(); start(); });
+        var nx = root.querySelector('.car-next'), pv = root.querySelector('.car-prev');
+        if (nx) nx.addEventListener('click', function () { next(); start(); });
+        if (pv) pv.addEventListener('click', function () { prev(); start(); });
         track.addEventListener('scroll', function () { requestAnimationFrame(sync); }, { passive: true });
         root.addEventListener('mouseenter', stop);
         root.addEventListener('mouseleave', start);
+        root.addEventListener('focusin', stop);
+        root.addEventListener('focusout', start);
         root.addEventListener('touchstart', stop, { passive: true });
         root.addEventListener('touchend', start, { passive: true });
-        addEventListener('resize', build);
-        document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
+        window.addEventListener('resize', build);
+        document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else start(); });
         build(); start();
     }
     carousel('bsCarousel', 'bsTrack', 'bsDots', '.bs-card', 4500);
     carousel('rvCarousel', 'rvTrack', 'rvDots', '.rv-card', 5500);
 
-    /* ---------- Lightbox ---------- */
+    /* ---------- Review photo lightbox ---------- */
     var lb = $('publicReviewLightbox'), lbImg = $('publicReviewLightboxImg');
     function openLb(url) { lbImg.src = url; lb.classList.add('open'); document.body.style.overflow = 'hidden'; }
-    function closeLb()   { lb.classList.remove('open'); lbImg.src = ''; document.body.style.overflow = ''; }
+    function closeLb()   { lb.classList.remove('open'); lbImg.removeAttribute('src'); document.body.style.overflow = ''; }
     document.querySelectorAll('[data-lightbox]').forEach(function (b) {
         b.addEventListener('click', function () { openLb(b.dataset.lightbox); });
     });
     lb.addEventListener('click', closeLb);
     lbImg.addEventListener('click', function (e) { e.stopPropagation(); });
 
+    /* ---------- Mobile navbar toggle ---------- */
+    var navToggler = $('navbarToggler'), navMenu = $('navbarMenu');
+    function closeNav() {
+        if (!navMenu || !navToggler) return;
+        navMenu.classList.remove('is-open');
+        navToggler.classList.remove('is-open');
+        navToggler.setAttribute('aria-expanded', 'false');
+    }
+    if (navToggler && navMenu) {
+        navToggler.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var isOpen = navMenu.classList.toggle('is-open');
+            navToggler.classList.toggle('is-open', isOpen);
+            navToggler.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+        navMenu.querySelectorAll('.nav-link, .nav-btn-admin, .nav-btn-cta').forEach(function (link) {
+            link.addEventListener('click', closeNav);
+        });
+        document.addEventListener('click', function (e) {
+            if (!navMenu.contains(e.target) && !navToggler.contains(e.target)) closeNav();
+        });
+    }
+
+    /* ---------- Active nav link on scroll ---------- */
+    var spyLinks = document.querySelectorAll('.navbar-nav .nav-link[data-spy]');
+    function setActive(key) {
+        spyLinks.forEach(function (l) { l.classList.toggle('active', l.dataset.spy === key); });
+    }
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) { if (en.isIntersecting) setActive(en.target.id); });
+        }, { rootMargin: '-40% 0px -55% 0px' });
+        ['itineraries', 'gallery', 'reviews', 'faq'].forEach(function (id) {
+            var el = $(id); if (el) io.observe(el);
+        });
+        window.addEventListener('scroll', function () {
+            if (window.scrollY < 300) setActive('home');
+        }, { passive: true });
+    }
+
+    /* ---------- Travel gallery: filtering + lightbox ---------- */
+    var galItems = Array.prototype.slice.call(document.querySelectorAll('#galGrid .gal-item'));
+    var galChips = document.querySelectorAll('#galFilterChips .gal-chip');
+    var galNoRes = $('galNoResults');
+    var galModal = $('galModal'), galModalImg = $('galModalImg'),
+        galModalTitle = $('galModalTitle'), galModalDesc = $('galModalDesc'),
+        galModalCount = $('galModalCount');
+    var visibleGal = galItems.slice();
+    var galIndex = 0;
+
+    galChips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            galChips.forEach(function (c) { c.classList.remove('is-active'); });
+            chip.classList.add('is-active');
+            var target = chip.dataset.dest;
+            visibleGal = [];
+            galItems.forEach(function (item) {
+                var show = target === 'all' || (item.dataset.dest || '') === target;
+                item.style.display = show ? '' : 'none';
+                if (show) visibleGal.push(item);
+            });
+            if (galNoRes) galNoRes.style.display = visibleGal.length === 0 ? 'block' : 'none';
+        });
+    });
+
+    function showGalPhoto(idx) {
+        if (!visibleGal.length) return;
+        if (idx < 0) idx = visibleGal.length - 1;
+        if (idx >= visibleGal.length) idx = 0;
+        galIndex = idx;
+        var el = visibleGal[galIndex];
+        galModalImg.src = el.dataset.src;
+        galModalImg.alt = el.dataset.title || 'Travel photo';
+        galModalTitle.textContent = el.dataset.title || '';
+        var desc = el.dataset.desc, loc = el.dataset.location;
+        galModalDesc.textContent = loc ? ('📍 ' + loc + (desc ? ' · ' + desc : '')) : (desc || '');
+        galModalCount.textContent = (galIndex + 1) + ' / ' + visibleGal.length;
+    }
+    function openGalModal(itemEl) {
+        var idx = visibleGal.indexOf(itemEl);
+        showGalPhoto(idx === -1 ? 0 : idx);
+        galModal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        var c = $('galModalClose'); if (c) c.focus();
+    }
+    function closeGalModal() {
+        if (!galModal) return;
+        galModal.classList.remove('open');
+        galModalImg.removeAttribute('src');
+        document.body.style.overflow = '';
+    }
+    galItems.forEach(function (item) {
+        item.addEventListener('click', function () { openGalModal(item); });
+        item.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openGalModal(item); }
+        });
+    });
+    if ($('galModalClose')) $('galModalClose').addEventListener('click', closeGalModal);
+    if ($('galModalPrev'))  $('galModalPrev').addEventListener('click', function (e) { e.stopPropagation(); showGalPhoto(galIndex - 1); });
+    if ($('galModalNext'))  $('galModalNext').addEventListener('click', function (e) { e.stopPropagation(); showGalPhoto(galIndex + 1); });
+    if (galModal) {
+        galModal.addEventListener('click', function (e) {
+            if (e.target === galModal || e.target.classList.contains('gal-modal-inner') || e.target.classList.contains('gal-modal-img-wrap')) closeGalModal();
+        });
+        var tsX = 0;
+        galModal.addEventListener('touchstart', function (e) { tsX = e.changedTouches[0].screenX; }, { passive: true });
+        galModal.addEventListener('touchend', function (e) {
+            var teX = e.changedTouches[0].screenX;
+            if (teX < tsX - 50) showGalPhoto(galIndex + 1);
+            if (teX > tsX + 50) showGalPhoto(galIndex - 1);
+        }, { passive: true });
+    }
+
     /* ---------- Review modal ---------- */
     var modal = $('reviewModal'), form = $('liveReviewForm'), alertBox = $('reviewAlertBox');
     var files = [], input = $('publicReviewImagesInput'), thumbs = $('reviewSelectedThumbnails');
-
-    function openModal()  { modal.classList.add('open'); document.body.style.overflow = 'hidden'; }
-    function closeModal() {
-        modal.classList.remove('open'); document.body.style.overflow = '';
-        files = []; syncFiles(); renderThumbs();
-    }
-    $('openReview').addEventListener('click', openModal);
-    document.querySelectorAll('[data-open-review]').forEach(function (b) { b.addEventListener('click', openModal); });
-    ['closeReview', 'cancelReview', 'doneReview'].forEach(function (id) { $(id).addEventListener('click', closeModal); });
-    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape') return;
-        if (lb.classList.contains('open')) closeLb(); else if (modal.classList.contains('open')) closeModal();
-    });
-
-    // Star picker
+    var rating = 5, stars = document.querySelectorAll('#modalStarPicker .m-star');
     var labels = { 1: '★☆☆☆☆ 1.0 - Poor', 2: '★★☆☆☆ 2.0 - Fair', 3: '★★★☆☆ 3.0 - Good',
                    4: '★★★★☆ 4.0 - Very good!', 5: '★★★★★ 5.0 - Exceptional experience!' };
-    var rating = 5, stars = document.querySelectorAll('#modalStarPicker .m-star');
+
     function paint(v) {
         stars.forEach(function (s) {
             var on = +s.dataset.val <= v;
@@ -1169,43 +1680,82 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         $('modalRatingText').textContent = labels[v];
     }
-    stars.forEach(function (s) {
-        s.addEventListener('mouseenter', function () { paint(+s.dataset.val); });
-        s.addEventListener('click', function () { rating = +s.dataset.val; $('modalRatingInput').value = rating; paint(rating); });
-    });
-    $('modalStarPicker').addEventListener('mouseleave', function () { paint(rating); });
-
-    // Photo picker
     function showError(msg) { alertBox.textContent = msg; alertBox.style.display = 'block'; }
     function syncFiles() {
         try { var dt = new DataTransfer(); files.forEach(function (f) { dt.items.add(f); }); input.files = dt.files; } catch (e) {}
     }
     function renderThumbs() {
         thumbs.innerHTML = '';
-        files.forEach(function (file, idx) {
+        files.forEach(function (file) {
             var r = new FileReader();
             r.onload = function (ev) {
                 var chip = document.createElement('div');
                 chip.className = 'thumb';
                 chip.innerHTML = '<img alt="Preview" src="' + ev.target.result + '">' +
-                                 '<button type="button" title="Remove photo"><i class="fas fa-times"></i></button>';
+                                 '<button type="button" title="Remove photo" aria-label="Remove photo"><i class="fas fa-times"></i></button>';
                 chip.querySelector('button').addEventListener('click', function () {
-                    files.splice(idx, 1); syncFiles(); renderThumbs();
+                    files = files.filter(function (f) { return f !== file; });
+                    syncFiles(); renderThumbs();
                 });
                 thumbs.appendChild(chip);
             };
             r.readAsDataURL(file);
         });
     }
+    function resetReviewForm() {
+        form.reset();
+        form.style.display = '';
+        $('reviewSuccessBox').style.display = 'none';
+        alertBox.style.display = 'none';
+        rating = 5; $('modalRatingInput').value = 5; paint(5);
+        files = []; syncFiles(); renderThumbs();
+    }
+    function openModal() {
+        modal.classList.add('open'); document.body.style.overflow = 'hidden';
+        var n = $('rvName'); if (n && form.style.display !== 'none') n.focus();
+    }
+    function closeModal() {
+        modal.classList.remove('open'); document.body.style.overflow = '';
+        resetReviewForm();
+    }
+
+    $('openReview').addEventListener('click', openModal);
+    document.querySelectorAll('[data-open-review]').forEach(function (b) { b.addEventListener('click', openModal); });
+    ['closeReview', 'cancelReview', 'doneReview'].forEach(function (id) { $(id).addEventListener('click', closeModal); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+    document.addEventListener('keydown', function (e) {
+        if (galModal && galModal.classList.contains('open')) {
+            if (e.key === 'Escape') closeGalModal();
+            else if (e.key === 'ArrowLeft') showGalPhoto(galIndex - 1);
+            else if (e.key === 'ArrowRight') showGalPhoto(galIndex + 1);
+            return;
+        }
+        if (e.key !== 'Escape') return;
+        if (lb.classList.contains('open')) closeLb();
+        else if (modal.classList.contains('open')) closeModal();
+        else closeNav();
+    });
+
+    // Star picker
+    stars.forEach(function (s) {
+        s.addEventListener('mouseenter', function () { paint(+s.dataset.val); });
+        s.addEventListener('click', function () { rating = +s.dataset.val; $('modalRatingInput').value = rating; paint(rating); });
+    });
+    $('modalStarPicker').addEventListener('mouseleave', function () { paint(rating); });
+    paint(5);
+
+    // Photo picker
     var drop = $('reviewDropzone');
     drop.addEventListener('click', function () { input.click(); });
+    input.addEventListener('click', function (e) { e.stopPropagation(); });
     drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
     input.addEventListener('change', function () {
         alertBox.style.display = 'none';
-        Array.from(input.files || []).forEach(function (f) {
-            if (!f.type.startsWith('image/')) return showError('Only image files (JPG, PNG, WebP, GIF) are allowed.');
-            if (f.size > 5 * 1024 * 1024)     return showError(f.name + ' exceeds the 5 MB limit.');
-            if (files.length >= 5)            return showError('You can upload up to 5 photos.');
+        Array.prototype.slice.call(input.files || []).forEach(function (f) {
+            if (!f.type || f.type.indexOf('image/') !== 0) return showError('Only image files (JPG, PNG, WebP, GIF) are allowed.');
+            if (f.size > 5 * 1024 * 1024)                  return showError(f.name + ' exceeds the 5 MB limit.');
+            if (files.length >= 5)                         return showError('You can upload up to 5 photos.');
             if (!files.some(function (x) { return x.name === f.name && x.size === f.size; })) files.push(f);
         });
         syncFiles(); renderThumbs();
@@ -1215,8 +1765,8 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         alertBox.style.display = 'none';
-        if (form.user_name.value.trim().length < 2)   return showError('Please enter your name (at least 2 characters).');
-        if (form.review_text.value.trim().length < 10) return showError('Please write at least 10 characters in your review.');
+        if (form.elements['user_name'].value.trim().length < 2)    return showError('Please enter your name (at least 2 characters).');
+        if (form.elements['review_text'].value.trim().length < 10) return showError('Please write at least 10 characters in your review.');
 
         var btn = $('reviewSubmitBtn'), txt = $('reviewBtnText'), ico = $('reviewBtnIcon');
         function busy(on) {
@@ -1226,16 +1776,23 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         busy(true);
 
-        fetch('submit-review.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new FormData(form) })
-            .then(function (r) { return r.json(); })
+        // Build FormData explicitly so photos are sent even if DataTransfer is unsupported
+        var fd = new FormData(form);
+        fd.delete('review_images[]');
+        files.forEach(function (f) { fd.append('review_images[]', f); });
+
+        fetch('submit-review.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
+            .then(function (r) {
+                return r.json().catch(function () { throw new Error('bad-response'); });
+            })
             .then(function (d) {
                 busy(false);
-                if (d.ok) {
+                if (d && d.ok) {
                     form.style.display = 'none';
                     $('reviewSuccessText').textContent = d.message || 'Your review was submitted and will appear once approved by our team.';
                     $('reviewSuccessBox').style.display = 'block';
                 } else {
-                    showError(d.error || 'Failed to submit review. Please try again.');
+                    showError((d && d.error) || 'Failed to submit review. Please try again.');
                 }
             })
             .catch(function () { busy(false); showError('Network error. Please check your connection and try again.'); });

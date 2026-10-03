@@ -75,6 +75,16 @@ define(
 );
 
 define(
+    'GALLERY_UPLOAD_DIR',
+    __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'gallery' . DIRECTORY_SEPARATOR
+);
+
+define(
+    'GALLERY_UPLOAD_URL',
+    rtrim(APP_URL, '/') . '/uploads/gallery/'
+);
+
+define(
     'MAX_FILE_SIZE',
     5 * 1024 * 1024
 );
@@ -92,7 +102,7 @@ define(
 
 
 // ============================================================
-// CREATE UPLOAD & REVIEW DIRECTORIES IF MISSING
+// CREATE UPLOAD, REVIEW & GALLERY DIRECTORIES IF MISSING
 // ============================================================
 
 if (!is_dir(UPLOAD_DIR)) {
@@ -109,6 +119,15 @@ if (!is_dir(REVIEW_UPLOAD_DIR)) {
         error_log(
             'SK Travel Planner - Unable to create review directory: ' .
             REVIEW_UPLOAD_DIR
+        );
+    }
+}
+
+if (!is_dir(GALLERY_UPLOAD_DIR)) {
+    if (!@mkdir(GALLERY_UPLOAD_DIR, 0755, true)) {
+        error_log(
+            'SK Travel Planner - Unable to create gallery directory: ' .
+            GALLERY_UPLOAD_DIR
         );
     }
 }
@@ -229,6 +248,25 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
     } catch (Throwable $tblEx) {
         error_log('SK Travel Planner - Review images table check: ' . $tblEx->getMessage());
+    }
+
+    // Auto-ensure gallery_images table exists
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `gallery_images` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `title` VARCHAR(255) NOT NULL,
+            `destination` VARCHAR(255) DEFAULT NULL,
+            `description` TEXT DEFAULT NULL,
+            `image` VARCHAR(255) NOT NULL,
+            `sort_order` INT DEFAULT 0,
+            `status` TINYINT(1) DEFAULT 1,
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX `idx_status` (`status`),
+            INDEX `idx_sort_order` (`sort_order`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+    } catch (Throwable $tblEx) {
+        error_log('SK Travel Planner - Gallery images table check: ' . $tblEx->getMessage());
     }
 
 } catch (PDOException $e) {
@@ -797,35 +835,39 @@ function uploadImage(
 function imageUrl(
     ?string $filename
 ): string {
-
-    if (
-        $filename &&
-        is_file(
-            UPLOAD_DIR .
-            basename($filename)
-        )
-    ) {
-
-        return
-            rtrim(UPLOAD_URL, '/') .
-            '/' .
-            rawurlencode(
-                basename($filename)
-            );
+    if (empty($filename)) {
+        return 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80';
     }
 
+    $filename = trim($filename);
 
-    // --------------------------------------------------------
+    // Full remote URL
+    if (preg_match('#^https?://#i', $filename)) {
+        return $filename;
+    }
+
+    // Direct path relative to site
+    if (str_starts_with($filename, 'assets/') || str_starts_with($filename, 'uploads/')) {
+        return rtrim(APP_URL, '/') . '/' . ltrim($filename, '/');
+    }
+
+    // Check upload directory
+    if (is_file(UPLOAD_DIR . basename($filename))) {
+        return rtrim(UPLOAD_URL, '/') . '/' . rawurlencode(basename($filename));
+    }
+
+    // Check gallery upload directory
+    if (defined('GALLERY_UPLOAD_DIR') && is_file(GALLERY_UPLOAD_DIR . basename($filename))) {
+        return rtrim(GALLERY_UPLOAD_URL, '/') . '/' . rawurlencode(basename($filename));
+    }
+
+    // Check hero asset directory
+    if (is_file(__DIR__ . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'hero' . DIRECTORY_SEPARATOR . basename($filename))) {
+        return rtrim(APP_URL, '/') . '/assets/hero/' . rawurlencode(basename($filename));
+    }
+
     // Fallback placeholder
-    // --------------------------------------------------------
-
-    return
-        'https://picsum.photos/seed/' .
-        rawurlencode(
-            'sktravel-' .
-            ($filename ?? 'default')
-        ) .
-        '/800/500';
+    return 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80';
 }
 
 
@@ -948,6 +990,64 @@ function deleteReviewImageFile(string $filename): bool
     $targetPath = REVIEW_UPLOAD_DIR . $basename;
     if (is_file($targetPath)) {
         return @unlink($targetPath);
+    }
+    return false;
+}
+
+
+// ============================================================
+// GALLERY IMAGE HELPERS
+// ============================================================
+
+/**
+ * Get gallery image URL.
+ * Handles full URLs (http/https), uploads/gallery/ paths, and bare filenames.
+ */
+function galleryImageUrl(?string $image, string $prefix = ''): string {
+    if (empty($image)) {
+        return 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80';
+    }
+    $image = trim($image);
+    if (preg_match('#^https?://#i', $image)) {
+        return $image;
+    }
+    // If path starts with uploads/
+    if (str_starts_with($image, 'uploads/')) {
+        return $prefix . $image;
+    }
+    // If it is in uploads/gallery/ folder
+    $base = basename($image);
+    if (is_file(GALLERY_UPLOAD_DIR . $base)) {
+        return $prefix . 'uploads/gallery/' . rawurlencode($base);
+    }
+    // If it is in uploads/ folder
+    if (is_file(UPLOAD_DIR . $base)) {
+        return $prefix . 'uploads/' . rawurlencode($base);
+    }
+    // Default fallback
+    return $prefix . 'uploads/gallery/' . rawurlencode($base);
+}
+
+/**
+ * Safely delete a gallery image file from disk.
+ */
+function deleteGalleryImageFile(string $filename): bool
+{
+    $filename = trim($filename);
+    if (empty($filename) || preg_match('#^https?://#i', $filename)) {
+        return false;
+    }
+    $base = basename($filename);
+    if (empty($base)) {
+        return false;
+    }
+    $galleryPath = GALLERY_UPLOAD_DIR . $base;
+    if (is_file($galleryPath)) {
+        return @unlink($galleryPath);
+    }
+    $uploadPath = UPLOAD_DIR . $base;
+    if (is_file($uploadPath)) {
+        return @unlink($uploadPath);
     }
     return false;
 }
