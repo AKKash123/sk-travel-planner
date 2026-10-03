@@ -6516,3 +6516,60 @@ body.chatbot-open .floating-whatsapp {
         font-size: 0.9rem;
     }
 }
+/* ---------- Brand Title ---------- */
+/* ---------- Brand Title (small-screen safe) ---------- */
+.brand-title {
+  font-size: clamp(1rem, 4.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  margin: 0;
+
+  display: block;
+  width: auto;
+  max-width: none !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+/* Every ancestor of the brand must not clip or squeeze it */
+.navbar,
+.navbar > .container,
+.navbar > .container-fluid,
+.navbar-brand,
+.brand-wrapper {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  min-width: 0;
+}
+
+.navbar-brand,
+.brand-wrapper {
+  flex: 1 1 0%;               /* take all leftover space */
+  max-width: none !important;
+  width: auto !important;
+  white-space: normal !important;
+  margin-right: 0.5rem;
+}
+
+/* Toggler/buttons keep their size and never steal brand space */
+.navbar-toggler,
+.navbar .btn,
+.navbar-actions {
+  flex: 0 0 auto;
+}
+
+/* Small phones */
+@media (max-width: 576px) {
+  .navbar > .container,
+  .navbar > .container-fluid {
+    flex-wrap: nowrap;        /* keep brand + toggler on one row */
+    gap: 0.5rem;
+  }
+  .brand-title {
+    font-size: clamp(0.95rem, 4.8vw, 1.25rem);
+  }
+}
