@@ -121,6 +121,14 @@ foreach ($itineraries as $it) {
 uasort($destCounts, static fn($a, $b) => $b['count'] <=> $a['count']);
 $primaryDestinations = array_slice($destCounts, 0, 8, true);
 
+// Day-wise options ("3 Days (2)")
+$dayCounts = [];
+foreach ($itineraries as $it) {
+    $d = (int)($it['duration_days'] ?? 0);
+    if ($d > 0) $dayCounts[$d] = ($dayCounts[$d] ?? 0) + 1;
+}
+ksort($dayCounts);
+
 // Best sellers (rating-weighted; add real bookings to $sales if you have them)
 $sales = [];
 $bestSellers = $itineraries;
@@ -216,6 +224,7 @@ $chatPackages = array_map(static fn($i) => [
     'price'       => (float)$i['price'],
     'priceLabel'  => fmtPrice($i['price']),
     'days'        => (int)$i['duration_days'],
+    'image'       => safeUrl('imageUrl', $i['image'] ?? ''),
     'url'         => 'detail.php?id=' . (int)$i['id'],
 ], $itineraries);
 
@@ -343,13 +352,23 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     .sf-count{font-size:.85rem;color:#6b6478;background:rgba(45,31,61,.06);padding:6px 14px;border-radius:999px}
     .sf-count strong{color:#2d1f3d}
     .sf-row{display:flex;gap:12px;align-items:stretch}
-    .sf-search{position:relative;flex:1}
+    .sf-search{position:relative;flex:1;min-width:0}
     .sf-search i{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#e8590c;pointer-events:none;transition:transform .25s}
     .sf-search input{width:100%;height:54px;padding:0 18px 0 48px;border:1.5px solid rgba(45,31,61,.15);border-radius:14px;
       font:inherit;font-size:1rem;color:#2d1f3d;background:rgba(255,255,255,.8);transition:border-color .25s,box-shadow .25s,background .25s;box-sizing:border-box}
     .sf-search input::placeholder{color:#8a8396}
     .sf-search input:focus{outline:none;border-color:#e8590c;background:#fff;box-shadow:0 0 0 4px rgba(232,89,12,.15)}
     .sf-search:focus-within i{transform:translateY(-50%) scale(1.15)}
+
+    /* Day dropdown */
+    .sf-select{position:relative;flex:0 0 210px}
+    .sf-select>i.lead{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#e8590c;pointer-events:none}
+    .sf-select>i.caret{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#6b6478;font-size:.75rem;pointer-events:none}
+    .sf-select select{width:100%;height:54px;padding:0 38px 0 44px;border:1.5px solid rgba(45,31,61,.15);border-radius:14px;
+      font:inherit;font-size:1rem;color:#2d1f3d;background:rgba(255,255,255,.8);cursor:pointer;box-sizing:border-box;
+      -webkit-appearance:none;-moz-appearance:none;appearance:none;transition:border-color .25s,box-shadow .25s,background .25s}
+    .sf-select select:focus{outline:none;border-color:#e8590c;box-shadow:0 0 0 4px rgba(232,89,12,.15);background:#fff}
+
     .sf-reset{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 24px;height:54px;border-radius:14px;
       border:1.5px solid rgba(45,31,61,.2);color:#2d1f3d;font:inherit;font-weight:600;cursor:pointer;background:rgba(255,255,255,.8);
       transition:transform .2s,background .2s,color .2s}
@@ -368,13 +387,39 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     .sf-chip:focus-visible,.sf-reset:focus-visible{outline:3px solid rgba(232,89,12,.5);outline-offset:2px}
     .sf-card .active-filters:empty{display:none}
     .sf-card .active-filters{margin-top:12px}
+
+    /* Day results panel (inside filter card) */
+    .sf-results{margin-top:18px;padding-top:16px;border-top:1px dashed rgba(45,31,61,.2)}
+    .sf-results[hidden]{display:none}
+    .sf-results-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:.92rem}
+    .sf-results-head strong{color:#2d1f3d}
+    .sf-results-head a{color:#e8590c;font-weight:600;text-decoration:none}
+    .sf-results-head a:hover{text-decoration:underline}
+    .sf-results-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+    .sf-res{display:flex;gap:12px;align-items:center;padding:10px;border-radius:14px;background:#fff;
+      border:1px solid rgba(45,31,61,.1);text-decoration:none;color:#2d1f3d;
+      transition:transform .2s,box-shadow .2s,border-color .2s}
+    .sf-res:hover{transform:translateY(-2px);border-color:#e8590c;box-shadow:0 10px 22px rgba(232,89,12,.16)}
+    .sf-res-img{flex:0 0 64px;width:64px;height:64px;border-radius:10px;overflow:hidden;background:#e5dfd6;display:grid;place-items:center;color:#e8590c}
+    .sf-res-img img{width:100%;height:100%;object-fit:cover;display:block}
+    .sf-res-txt{min-width:0;display:flex;flex-direction:column;gap:2px}
+    .sf-res-txt b{font-size:.92rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .sf-res-txt small{font-size:.78rem;color:#6b6478;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sf-res-txt span{font-size:.88rem;font-weight:700;color:#e8590c}
+    .sf-results-empty{padding:14px;text-align:center;color:#6b6478;font-size:.92rem;background:rgba(255,255,255,.6);border-radius:12px}
+
     @media(max-width:600px){
       .sf-section{padding:40px 0 36px}
       .sf-card{padding:18px 16px;border-radius:18px}
       .sf-row{flex-direction:column}
-      .sf-search input,.sf-reset{height:50px}
+      .sf-select{flex-basis:auto}
+      .sf-search input,.sf-reset,.sf-select select{height:50px}
     }
     @media(prefers-reduced-motion:reduce){.sf-card{animation:none}}
+
+    /* Day filter overrides (beat app.js inline display) */
+    .itinerary-item[data-day-hidden]{display:none!important}
+    .itinerary-item.day-match{display:flex!important;flex-direction:column}
 
     /* ---------- Shared headings / carousels ---------- */
     .bs-heading{text-align:center;max-width:760px;margin:0 auto 38px;position:relative}
@@ -493,7 +538,14 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     .gal-chip.is-active{background:linear-gradient(135deg,#e8590c,#f08a3c);border-color:transparent;color:#fff;box-shadow:0 8px 20px rgba(232,89,12,.35)}
     .gal-chip.is-active em{background:rgba(255,255,255,.25);color:#fff}
 
-    .gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px;margin-bottom:28px}
+    /* Gallery carousel */
+    .gal-car{margin-bottom:12px}
+    .gal-track{padding-top:10px;padding-bottom:18px}
+    .gal-track .gal-item{flex:0 0 calc((100% - 40px)/3);scroll-snap-align:start}
+    .gal-car.is-single .car-arrow,.gal-car.is-single+.car-dots{display:none}
+    @media(max-width:900px){.gal-track .gal-item{flex-basis:calc((100% - 20px)/2)}}
+    @media(max-width:600px){.gal-track .gal-item{flex-basis:88%}}
+
     .gal-item{position:relative;border-radius:18px;overflow:hidden;background:#2d1f3d;aspect-ratio:4/3;cursor:pointer;
       box-shadow:0 10px 28px rgba(45,31,61,.08);transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s ease;display:block}
     .gal-item:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(45,31,61,.2)}
@@ -543,7 +595,6 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
     .gal-modal-close:hover{background:var(--accent-orange)}
 
     @media(max-width:768px){
-      .gal-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
       .gal-modal-prev{left:6px}
       .gal-modal-next{right:6px}
       .gal-modal-close{top:6px;right:6px}
@@ -852,7 +903,7 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
 
             <span class="sf-eyebrow"><i class="fas fa-compass" aria-hidden="true"></i> Plan your escape</span>
             <h2 class="sf-heading">Where do you want to go?</h2>
-            <p class="sf-sub">Search by destination or pick a popular one to see matching packages instantly.</p>
+            <p class="sf-sub">Search by destination, pick a trip length, or choose a popular place to see matching packages instantly.</p>
 
             <div class="sf-card">
                 <div class="sf-head">
@@ -869,8 +920,22 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
                                aria-label="Search destination" autocomplete="off">
                         <i class="fas fa-location-dot" aria-hidden="true"></i>
                     </div>
+
+                    <?php if ($dayCounts): ?>
+                    <div class="sf-select">
+                        <i class="fas fa-calendar-days lead" aria-hidden="true"></i>
+                        <select id="daySelect" aria-label="Filter by number of days">
+                            <option value="all">All durations</option>
+                            <?php foreach ($dayCounts as $days => $cnt): ?>
+                                <option value="<?= (int)$days ?>"><?= (int)$days ?> Day<?= $days > 1 ? 's' : '' ?> (<?= (int)$cnt ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                        <i class="fas fa-chevron-down caret" aria-hidden="true"></i>
+                    </div>
+                    <?php endif; ?>
+
                     <button type="button" class="sf-reset filter-reset" id="resetFilters">
-                        <i class="fas fa-rotate-left" aria-hidden="true"></i> Reset
+                        <i class="fas fa-rotate-left" aria-hidden="true"></i> Search
                     </button>
                 </div>
 
@@ -886,6 +951,15 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
                 <?php endif; ?>
 
                 <div class="active-filters" id="activeFilters" aria-live="polite"></div>
+
+                <!-- Matching packages for the selected number of days -->
+                <div class="sf-results" id="dayResults" hidden aria-live="polite">
+                    <div class="sf-results-head">
+                        <strong id="dayResultsTitle"></strong>
+                        <a href="#itineraries" id="dayResultsLink">See in full list <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
+                    </div>
+                    <div class="sf-results-list" id="dayResultsList"></div>
+                </div>
 
                 <!-- Kept for compatibility with app.js (price filtering has been removed) -->
                 <select id="priceFilter" hidden tabindex="-1" aria-hidden="true"><option value="all">All Prices</option></select>
@@ -999,6 +1073,7 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
                     $rt         = $ratings[(int)$itin['id']] ?? null;
                 ?>
                     <div class="itin-card itinerary-item"
+                         data-days="<?= (int)$itin['duration_days'] ?>"
                          data-price="<?= $price ?>"
                          data-destination="<?= h(mb_strtolower((string)$itin['destination'])) ?>"
                          data-title="<?= h(mb_strtolower((string)$itin['title'])) ?>">
@@ -1056,7 +1131,7 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
                 <div id="noFilterResults" class="filter-no-results" style="display:none;">
                     <i class="fas fa-map-signs"></i>
                     <h3>No packages found</h3>
-                    <p>Try a different destination.</p>
+                    <p>Try a different destination or duration.</p>
                     <button type="button" class="btn btn-primary" id="resetFiltersEmpty">Reset filter</button>
                 </div>
             </div>
@@ -1104,36 +1179,41 @@ $pageDesc  = 'Plan your trip with SK Travel Planners: expert-curated day-wise it
                 <p style="color:#64748b;font-size:14.5px;">We are currently curating stunning travel pictures for you. Check back shortly!</p>
             </div>
         <?php else: ?>
-            <div class="gal-grid" id="galGrid">
-                <?php foreach ($galleryImages as $gIdx => $gPhoto):
-                    $gUrl     = safeUrl('galleryImageUrl', $gPhoto['image']);
-                    $gDest    = trim((string)($gPhoto['destination'] ?? ''));
-                    $gDestKey = mb_strtolower($gDest);
-                ?>
-                    <article class="gal-item"
-                             data-dest="<?= h($gDestKey) ?>"
-                             data-src="<?= h($gUrl) ?>"
-                             data-title="<?= h($gPhoto['title']) ?>"
-                             data-desc="<?= h($gPhoto['description'] ?? '') ?>"
-                             data-location="<?= h($gDest) ?>"
-                             tabindex="0"
-                             role="button"
-                             aria-label="View <?= h($gPhoto['title']) ?>">
-                        <?php if ($gDest !== ''): ?>
-                            <span class="gal-badge"><i class="fas fa-map-marker-alt"></i> <?= h($gDest) ?></span>
-                        <?php endif; ?>
-                        <img src="<?= h($gUrl) ?>" alt="<?= h($gPhoto['title']) ?>"
-                             loading="<?= $gIdx < 8 ? 'eager' : 'lazy' ?>" decoding="async">
-                        <div class="gal-overlay">
-                            <h3 class="gal-title"><?= h($gPhoto['title']) ?></h3>
-                            <?php if (!empty($gPhoto['description'])): ?>
-                                <p class="gal-caption"><?= h($gPhoto['description']) ?></p>
+            <div class="car gal-car" id="galCarousel" aria-roledescription="carousel" aria-label="Travel photos">
+                <button type="button" class="car-arrow car-prev" id="galPrev" aria-label="Previous photos"><i class="fas fa-chevron-left"></i></button>
+                <div class="car-track gal-track" id="galGrid">
+                    <?php foreach ($galleryImages as $gIdx => $gPhoto):
+                        $gUrl     = safeUrl('galleryImageUrl', $gPhoto['image']);
+                        $gDest    = trim((string)($gPhoto['destination'] ?? ''));
+                        $gDestKey = mb_strtolower($gDest);
+                    ?>
+                        <article class="gal-item"
+                                 data-dest="<?= h($gDestKey) ?>"
+                                 data-src="<?= h($gUrl) ?>"
+                                 data-title="<?= h($gPhoto['title']) ?>"
+                                 data-desc="<?= h($gPhoto['description'] ?? '') ?>"
+                                 data-location="<?= h($gDest) ?>"
+                                 tabindex="0"
+                                 role="button"
+                                 aria-label="View <?= h($gPhoto['title']) ?>">
+                            <?php if ($gDest !== ''): ?>
+                                <span class="gal-badge"><i class="fas fa-map-marker-alt"></i> <?= h($gDest) ?></span>
                             <?php endif; ?>
-                            <span class="gal-zoom-icon" aria-hidden="true"><i class="fas fa-expand-alt"></i></span>
-                        </div>
-                    </article>
-                <?php endforeach; ?>
+                            <img src="<?= h($gUrl) ?>" alt="<?= h($gPhoto['title']) ?>"
+                                 loading="<?= $gIdx < 8 ? 'eager' : 'lazy' ?>" decoding="async">
+                            <div class="gal-overlay">
+                                <h3 class="gal-title"><?= h($gPhoto['title']) ?></h3>
+                                <?php if (!empty($gPhoto['description'])): ?>
+                                    <p class="gal-caption"><?= h($gPhoto['description']) ?></p>
+                                <?php endif; ?>
+                                <span class="gal-zoom-icon" aria-hidden="true"><i class="fas fa-expand-alt"></i></span>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="car-arrow car-next" id="galNext" aria-label="Next photos"><i class="fas fa-chevron-right"></i></button>
             </div>
+            <div class="car-dots" id="galDots" role="group" aria-label="Choose gallery slide"></div>
 
             <div id="galNoResults" style="display:none; text-align:center; padding:30px 16px; color:#64748b;">
                 <i class="fas fa-camera" style="font-size:36px; color:var(--accent-orange); margin-bottom:8px;"></i>
@@ -1483,6 +1563,107 @@ document.addEventListener('DOMContentLoaded', function () {
         var b = $(id); if (b) b.addEventListener('click', function () { markChip(''); });
     });
 
+    /* ---------- Day-wise dropdown filter (+ results panel in the filter card) ---------- */
+    var daySel     = $('daySelect');
+    var dayPanel   = $('dayResults');
+    var dayList    = $('dayResultsList');
+    var dayTitle   = $('dayResultsTitle');
+
+    function renderDayPanel(day, q) {
+        if (!dayPanel || !dayList) return;
+        if (day === 'all') { dayPanel.hidden = true; dayList.innerHTML = ''; return; }
+
+        var pkgs = (window.APP && window.APP.packages) || [];
+        var matches = pkgs.filter(function (p) {
+            return String(p.days) === day &&
+                (!q || (p.destination || '').toLowerCase().indexOf(q) > -1 || (p.title || '').toLowerCase().indexOf(q) > -1);
+        });
+
+        dayList.innerHTML = '';
+        dayTitle.textContent = matches.length + ' package' + (matches.length === 1 ? '' : 's') +
+                               ' for ' + day + ' day' + (day === '1' ? '' : 's');
+
+        if (!matches.length) {
+            var empty = document.createElement('div');
+            empty.className = 'sf-results-empty';
+            empty.textContent = 'No ' + day + '-day packages match your search. Try clearing the destination.';
+            dayList.appendChild(empty);
+        }
+        matches.forEach(function (p) {
+            var a = document.createElement('a');
+            a.className = 'sf-res';
+            a.href = p.url;
+
+            var imgWrap = document.createElement('span');
+            imgWrap.className = 'sf-res-img';
+            if (p.image) {
+                var img = document.createElement('img');
+                img.src = p.image; img.alt = p.title; img.loading = 'lazy'; img.decoding = 'async';
+                img.onerror = function () { imgWrap.innerHTML = '<i class="fas fa-mountain-sun"></i>'; };
+                imgWrap.appendChild(img);
+            } else {
+                imgWrap.innerHTML = '<i class="fas fa-mountain-sun"></i>';
+            }
+
+            var txt = document.createElement('span');
+            txt.className = 'sf-res-txt';
+            var t = document.createElement('b');     t.textContent = p.title;
+            var d = document.createElement('small'); d.textContent = p.destination + ' · ' + p.days + ' Days';
+            var pr = document.createElement('span'); pr.textContent = p.priceLabel;
+            txt.appendChild(t); txt.appendChild(d); txt.appendChild(pr);
+
+            a.appendChild(imgWrap); a.appendChild(txt);
+            dayList.appendChild(a);
+        });
+        dayPanel.hidden = false;
+    }
+
+    function applyDayFilter() {
+        if (!daySel) return;
+        var day   = daySel.value;
+        var items = document.querySelectorAll('#itineraryGrid .itinerary-item');
+        var none  = $('noFilterResults'), wrap = $('loadMoreWrap'), cnt = $('resultCount');
+        var q     = (search ? search.value : '').trim().toLowerCase();
+
+        renderDayPanel(day, q);
+
+        if (day === 'all') {
+            // Hand control back to app.js (search + pagination)
+            items.forEach(function (i) { i.classList.remove('day-match'); i.removeAttribute('data-day-hidden'); });
+            return;
+        }
+
+        var n = 0;
+        items.forEach(function (i) {
+            var ok = i.dataset.days === day &&
+                     (!q || (i.dataset.destination || '').indexOf(q) > -1 || (i.dataset.title || '').indexOf(q) > -1);
+            i.classList.toggle('day-match', ok);
+            if (ok) { i.removeAttribute('data-day-hidden'); n++; } else { i.setAttribute('data-day-hidden', ''); }
+        });
+        if (wrap) wrap.hidden = true;
+        if (cnt)  cnt.textContent = n;
+        if (none) none.style.display = n === 0 ? 'block' : 'none';
+    }
+
+    if (daySel) {
+        daySel.addEventListener('change', function () {
+            if (daySel.value === 'all' && search) search.dispatchEvent(new Event('input', { bubbles: true }));
+            applyDayFilter();
+            if (daySel.value !== 'all') {
+                var g = $('itineraryGrid'); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+        if (search) search.addEventListener('input', applyDayFilter);
+        ['resetFilters', 'resetFiltersEmpty'].forEach(function (id) {
+            var b = $(id);
+            if (b) b.addEventListener('click', function () {
+                daySel.value = 'all';
+                applyDayFilter();
+                if (search) search.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+    }
+
     /* ---------- Reusable scroll-snap carousel (best sellers + reviews) ---------- */
     function carousel(rootId, trackId, dotsId, cardSel, auto) {
         var root = $(rootId), track = $(trackId), dots = $(dotsId);
@@ -1592,7 +1773,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }, { passive: true });
     }
 
-    /* ---------- Travel gallery: filtering + lightbox ---------- */
+    /* ---------- Travel gallery: lightbox + carousel + filtering ---------- */
     var galItems = Array.prototype.slice.call(document.querySelectorAll('#galGrid .gal-item'));
     var galChips = document.querySelectorAll('#galFilterChips .gal-chip');
     var galNoRes = $('galNoResults');
@@ -1601,21 +1782,6 @@ document.addEventListener('DOMContentLoaded', function () {
         galModalCount = $('galModalCount');
     var visibleGal = galItems.slice();
     var galIndex = 0;
-
-    galChips.forEach(function (chip) {
-        chip.addEventListener('click', function () {
-            galChips.forEach(function (c) { c.classList.remove('is-active'); });
-            chip.classList.add('is-active');
-            var target = chip.dataset.dest;
-            visibleGal = [];
-            galItems.forEach(function (item) {
-                var show = target === 'all' || (item.dataset.dest || '') === target;
-                item.style.display = show ? '' : 'none';
-                if (show) visibleGal.push(item);
-            });
-            if (galNoRes) galNoRes.style.display = visibleGal.length === 0 ? 'block' : 'none';
-        });
-    });
 
     function showGalPhoto(idx) {
         if (!visibleGal.length) return;
@@ -1664,6 +1830,93 @@ document.addEventListener('DOMContentLoaded', function () {
             if (teX > tsX + 50) showGalPhoto(galIndex - 1);
         }, { passive: true });
     }
+
+    /* Gallery carousel ride */
+    var galTrack = $('galGrid'), galCar = $('galCarousel'), galDots = $('galDots'), galTimer;
+
+    function galVis() { return galItems.filter(function (i) { return i.style.display !== 'none'; }); }
+    function galStep() {
+        var v = galVis(); if (!v.length || !galTrack) return 0;
+        return v[0].getBoundingClientRect().width + (parseFloat(getComputedStyle(galTrack).columnGap) || 20);
+    }
+    function galPer() {
+        var v = galVis(); if (!v.length) return 1;
+        var w = v[0].getBoundingClientRect().width || 1;
+        return Math.max(1, Math.round(galTrack.clientWidth / w));
+    }
+    function galPages() { return Math.max(1, galVis().length - galPer() + 1); }
+    function galSync() {
+        if (!galDots) return;
+        var idx = Math.round(galTrack.scrollLeft / (galStep() || 1));
+        galDots.querySelectorAll('button').forEach(function (d, i) { d.classList.toggle('on', i === idx); });
+    }
+    function galGo(i) { galTrack.scrollTo({ left: i * galStep(), behavior: 'smooth' }); }
+    function galNextSlide() {
+        var end = galTrack.scrollLeft + galTrack.clientWidth >= galTrack.scrollWidth - 4;
+        if (end) galGo(0); else galTrack.scrollBy({ left: galStep(), behavior: 'smooth' });
+    }
+    function galPrevSlide() {
+        if (galTrack.scrollLeft <= 4) galGo(galPages() - 1);
+        else galTrack.scrollBy({ left: -galStep(), behavior: 'smooth' });
+    }
+    function galStop() { clearInterval(galTimer); }
+    function galStart() {
+        galStop();
+        if (galPages() < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        galTimer = setInterval(function () {
+            if (galModal && galModal.classList.contains('open')) return;   // pause while lightbox is open
+            galNextSlide();
+        }, 3500);
+    }
+    function galBuild() {
+        if (!galTrack || !galCar) return;
+        galCar.classList.toggle('is-single', galPages() < 2);
+        if (galDots) {
+            galDots.innerHTML = '';
+            if (galPages() >= 2) {
+                for (var i = 0; i < galPages(); i++) {
+                    var b = document.createElement('button');
+                    b.type = 'button'; b.setAttribute('aria-label', 'Slide ' + (i + 1));
+                    (function (n) { b.addEventListener('click', function () { galGo(n); galStart(); }); })(i);
+                    galDots.appendChild(b);
+                }
+            }
+        }
+        galSync(); galStart();
+    }
+
+    if (galTrack && galCar) {
+        var gp = $('galPrev'), gn = $('galNext');
+        if (gn) gn.addEventListener('click', function () { galNextSlide(); galStart(); });
+        if (gp) gp.addEventListener('click', function () { galPrevSlide(); galStart(); });
+        galTrack.addEventListener('scroll', function () { requestAnimationFrame(galSync); }, { passive: true });
+        galCar.addEventListener('mouseenter', galStop);
+        galCar.addEventListener('mouseleave', galStart);
+        galCar.addEventListener('focusin', galStop);
+        galCar.addEventListener('focusout', galStart);
+        galCar.addEventListener('touchstart', galStop, { passive: true });
+        galCar.addEventListener('touchend', galStart, { passive: true });
+        window.addEventListener('resize', galBuild);
+        document.addEventListener('visibilitychange', function () { if (document.hidden) galStop(); else galStart(); });
+        galBuild();
+    }
+
+    galChips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            galChips.forEach(function (c) { c.classList.remove('is-active'); });
+            chip.classList.add('is-active');
+            var target = chip.dataset.dest;
+            visibleGal = [];
+            galItems.forEach(function (item) {
+                var show = target === 'all' || (item.dataset.dest || '') === target;
+                item.style.display = show ? '' : 'none';
+                if (show) visibleGal.push(item);
+            });
+            if (galNoRes) galNoRes.style.display = visibleGal.length === 0 ? 'block' : 'none';
+            if (galCar) galCar.style.display = visibleGal.length === 0 ? 'none' : '';
+            if (galTrack) { galTrack.scrollLeft = 0; galBuild(); }
+        });
+    });
 
     /* ---------- Review modal ---------- */
     var modal = $('reviewModal'), form = $('liveReviewForm'), alertBox = $('reviewAlertBox');
