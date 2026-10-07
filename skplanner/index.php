@@ -199,18 +199,8 @@ $pageSize       = 3;      // cards shown first and added on every "Load more"
 $showAdminLinks = true;   // set to false to hide the Admin links from the public site
 
 $faqs = [
-    ['How do I book a tour with SK Travel Planners?',
-     'Browse our itineraries and click "View Details", or reach us by WhatsApp, phone or email. The process is simple: 1. Consult (share dates and preferences), 2. Customize (we design and quote), 3. Confirm (secure with a deposit), 4. Prepare (we handle the logistics).'],
-    ['Are the tour prices per person or per group?',
-     'Listed prices are per person, typically based on double/twin occupancy. Solo travellers pay a single supplement. Private groups can request a flat group rate.'],
-    ["What's included in the tour price?",
-     'Standard tours include accommodation, private air-conditioned transport with a driver, local expert guides, daily breakfast and the listed entrance fees. International flights, visa fees and personal expenses are generally not included.'],
-    ['Can I customize a tour to my preferences?',
-     'Yes. You can adjust the duration, upgrade hotels, add activities or change the route. Tell us what you have in mind and we will build it.'],
-    ['What is the cancellation policy?',
-     'From the date of departure: 60+ days prior, deposit refunded minus an admin fee; 30–59 days, 50% non-refundable; 0–29 days, 100% non-refundable. Peak season bookings may have stricter terms. We recommend travel insurance.'],
-    ['Do you provide visa assistance?',
-     'We supply supporting documents (hotel vouchers, itinerary) and guide you step by step through the Indian e-Visa process. We do not process visas directly.'],
+    ['Why do we choose a tour with SK Travel Planners?',
+     'Every itinerary is customized to your dates and preferences, with private air-conditioned transport, local expert guides, centrally located hotels and 24/7 on-ground support. Booking is simple: 1. Consult (share dates and preferences), 2. Customize (we design and quote), 3. Confirm (secure with a deposit), 4. Prepare (we handle the logistics). Reach us by WhatsApp, phone or email, or browse our itineraries and click "View Details".'],
     ['Are India tours safe for solo female travellers?',
      'Yes. We use vetted private transport, centrally located hotels, trained guides and 24/7 on-ground support. Female guides can be requested in certain cities.'],
     ['What is the best time to visit India?',
